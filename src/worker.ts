@@ -25,8 +25,20 @@ export interface Env {
 	// MY_QUEUE: Queue;
 }
 
-export default {
-	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-		return new Response('Hello World!');
+const handler: ExportedHandler = {
+	async fetch(request: Request) {
+		const data = {
+			hello: 'world',
+		};
+
+		const json = JSON.stringify(data, null, 2);
+
+		return new Response(json, {
+			headers: {
+				'content-type': 'application/json;charset=UTF-8',
+			},
+		});
 	},
 };
+
+export default handler;
