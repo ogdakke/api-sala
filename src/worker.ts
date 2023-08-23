@@ -1,3 +1,4 @@
+import { createPassphrase } from './services/generate-passphrase'
 /**
  * Welcome to Cloudflare Workers! This is your first worker.
  *
@@ -27,18 +28,20 @@ export interface Env {
 
 const handler: ExportedHandler = {
 	async fetch(request: Request) {
-		const data = {
-			hello: 'world',
+		if (request.method === 'POST') {
+			const requestBody = (await request.json()) || undefined
+			const passLength = requestBody?.passLength
+			const data = requestBody?.data
+
+			try {
+				const passphrase = createPassphrase(passLength, data)
+				return new Response(JSON.stringify({ passphrase }), { status: 200 })
+			} catch (error) {
+				return new Response(JSON.stringify({ error: error }), { status: 400 })
+			}
 		}
 
-		const json = JSON.stringify(data, null, 2)
-
-		return new Response(json, {
-			headers: {
-				'content-type': 'application/json;charset=UTF-8',
-			},
-		})
+		return new Response('Only POST requests are allowed', { status: 405 })
 	},
 }
-
 export default handler
