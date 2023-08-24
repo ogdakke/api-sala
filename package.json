@@ -4,12 +4,17 @@
 	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy",
-		"start": "wrangler dev"
+		"start": "wrangler dev",
+		"test": "vitest",
+		"wrangler": "wrangler",
+		"prettier": "prettier src/ --write"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20230821.0",
 		"@types/node": "^20.5.4",
+		"prettier": "^3.0.2",
 		"typescript": "^5.1.6",
+		"vitest": "^0.34.2",
 		"wrangler": "^3.5.1"
 	}
 }

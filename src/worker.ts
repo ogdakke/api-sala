@@ -1,4 +1,8 @@
+import { minLengthForWords } from './config'
+import { IndexableInputValue } from './models'
 import { createPassphrase } from './services/generate-passphrase'
+import { validateSecret } from './services/validate-secret'
+
 /**
  * Welcome to Cloudflare Workers! This is your first worker.
  *
@@ -24,24 +28,124 @@ export interface Env {
 	//
 	// Example binding to a Queue. Learn more at https://developers.cloudflare.com/queues/javascript-apis/
 	// MY_QUEUE: Queue;
+	X_SECRET_KEY: string
 }
 
+declare global {
+	const X_SECRET_KEY: string
+}
+
+const headers = {
+	'Content-Type': 'application/json',
+	// Uncomment the line below if you want to allow cross-origin requests
+	'Access-Control-Allow-Origin': '*',
+	'Cache-Control': 'no-cache, no-store, must-revalidate', // Disable caching for this dynamic content
+}
+
+/**
+ * Custom header key to check for apiKey
+ */
+const PRESHARED_AUTH_HEADER_KEY = 'X_SECRET_KEY'
+
 const handler: ExportedHandler = {
-	async fetch(request: Request) {
-		if (request.method === 'POST') {
+	async fetch(request: Request, env) {
+		/**
+		 * API key from env. Locally read from .dev.vars | in prod from configuration
+		 */
+		const apiKey = (env as Env).X_SECRET_KEY
+
+		/**
+		 * The user sent key, that will be compared with apiKey
+		 */
+		const preSharedKey = request.headers.get(PRESHARED_AUTH_HEADER_KEY)
+
+		if (preSharedKey == null) {
+			return new Response(JSON.stringify({ error: 'no authorization key found' }), { status: 403, headers: headers })
+		}
+
+		/**
+		 * If validation fails, eg. Keys do not match.
+		 */
+		if (!validateSecret(preSharedKey, apiKey)) {
+			return new Response(
+				JSON.stringify({
+					authorization: 'not authorized',
+					why: 'Provided key is not authorized',
+				}),
+				{ status: 403, headers: headers },
+			)
+		}
+
+		if (request.method === 'GET') {
+			const url = new URL(request.url)
+			const { passLength, data } = extractSearchParams(url)
+
+			try {
+				const passphrase = createPassphrase(passLength, data)
+				return new Response(
+					JSON.stringify({
+						passphrase: passphrase,
+						passLength: passphrase.length,
+					}),
+					{ status: 200, headers: headers },
+				)
+			} catch (error) {
+				if (error instanceof Error) {
+					return new Response(JSON.stringify({ error: error.message }), { status: 400 })
+				}
+			}
+		} else if (request.method === 'POST') {
 			const requestBody = (await request.json()) || undefined
 			const passLength = requestBody?.passLength
 			const data = requestBody?.data
 
 			try {
 				const passphrase = createPassphrase(passLength, data)
-				return new Response(JSON.stringify({ passphrase }), { status: 200 })
+				return new Response(
+					JSON.stringify({
+						passphrase: passphrase,
+						passLength: passphrase.length,
+					}),
+					{ status: 200, headers: headers },
+				)
 			} catch (error) {
-				return new Response(JSON.stringify({ error: error }), { status: 400 })
+				return new Response(JSON.stringify({ error: error.message }), { status: 400 })
 			}
 		}
 
-		return new Response('Only POST requests are allowed', { status: 405 })
+		return new Response('Only GET and POST requests are allowed', { status: 405 })
 	},
 }
+/**
+ * extract all needed params from the url
+ * @param url url to extract from
+ * @returns passlength, data
+ */
+function extractSearchParams(url: URL) {
+	// Extract parameters
+	const passLength: string = url.searchParams.get('passLength') || minLengthForWords.toString()
+	const data: IndexableInputValue = {
+		words: {
+			selected: url.searchParams.get('words') === 'true',
+		},
+		randomChars: {
+			value: url.searchParams.get('randomCharsValue') || '',
+			selected: url.searchParams.get('randomChars') === 'true',
+		},
+		numbers: {
+			selected: url.searchParams.get('numbers') === 'true',
+		},
+		uppercase: {
+			selected: url.searchParams.get('uppercase') === 'true',
+		},
+	}
+
+	return { passLength, data }
+}
+
+interface ResponseShape {
+	passphrase: string
+	passLength: number
+}
+
 export default handler

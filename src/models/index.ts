@@ -1,4 +1,4 @@
-export type InputLabel = 'words' | 'uppercase' | 'titlecase' | 'numbers' | 'randomChars'
+export type InputLabel = 'words' | 'uppercase' | 'numbers' | 'randomChars'
 
 export interface InputValue {
 	value?: string // used in randomchars

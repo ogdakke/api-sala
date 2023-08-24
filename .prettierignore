@@ -1,0 +1,10 @@
+node_modules/
+.vscode/
+dev-dist/
+dist/
+public/
+sanat.*
+coverage/
+bundle-analysis/
+.github/
+.husky/
