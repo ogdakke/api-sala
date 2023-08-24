@@ -2,6 +2,7 @@ import {
 	characters,
 	charactersAndSpecialCharacters,
 	charsWithNumbers,
+	defaultLengthOfPassphrase,
 	defaultResponse,
 	maxLengthForChars,
 	maxLengthForWords,
@@ -17,7 +18,7 @@ const sanat = await import('../assets/sanat.json')
 let variableMinLength = minLengthForWords
 let variableMaxLength = maxLengthForChars
 
-export function createPassphrase(passLength: string, data = defaultResponse): string {
+export function createPassphrase(passLength = defaultLengthOfPassphrase, data = defaultResponse): string {
 	variableMinLength = data.words.selected ? minLengthForWords : minLengthForChars
 	variableMaxLength = data.words.selected ? maxLengthForWords : maxLengthForChars
 
@@ -117,7 +118,8 @@ const createFromString = (stringToUse: string, length: number): string => {
 
 const validateStringToBeNumber = (stringToCheck: string) => {
 	if (stringToCheck == null) {
-		throw new Error('Value cannot be undefined or null')
+		// Since there is a default value, this will probably never be hit
+		throw new Error('Length cannot be undefined or null')
 	}
 
 	if (isNaN(Number(stringToCheck))) {

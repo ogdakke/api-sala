@@ -69,8 +69,8 @@ const handler: ExportedHandler = {
 		if (!validateSecret(preSharedKey, apiKey)) {
 			return new Response(
 				JSON.stringify({
-					authorization: 'not authorized',
-					why: 'Provided key is not authorized',
+					error: 'not authorized',
+					reason: 'Provided key is not authorized',
 				}),
 				{ status: 403, headers: headers },
 			)
@@ -99,9 +99,8 @@ const handler: ExportedHandler = {
 				}
 			}
 		} else if (request.method === 'POST') {
-			const requestBody = (await request.json()) || undefined
-			const passLength = requestBody?.passLength
-			const data = requestBody?.data
+			const { passLength, data }: PassphraseData = (await request.json()) || undefined
+			console.log(data)
 
 			try {
 				const passphrase = createPassphrase(passLength, data)
@@ -147,13 +146,13 @@ function extractSearchParams(url: URL) {
 	return { passLength, data }
 }
 
-function logRequestData(req: Request) {
+function logRequestData(req?: Request) {
 	console.log('Date:', new Date().toUTCString())
 }
 
-interface ResponseShape {
-	passphrase: string
-	passLength: number
+interface PassphraseData {
+	passLength: string
+	data: IndexableInputValue
 }
 
 export default handler

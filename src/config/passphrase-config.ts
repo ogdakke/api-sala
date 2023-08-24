@@ -1,5 +1,6 @@
 import { IndexableInputValue } from '../models'
 
+export const defaultLengthOfPassphrase = '3'
 export const defaultResponse: IndexableInputValue = {
 	words: {
 		value: undefined,
@@ -8,10 +9,6 @@ export const defaultResponse: IndexableInputValue = {
 	uppercase: {
 		value: undefined,
 		selected: true,
-	},
-	titlecase: {
-		value: undefined,
-		selected: false,
 	},
 	numbers: {
 		value: undefined,
