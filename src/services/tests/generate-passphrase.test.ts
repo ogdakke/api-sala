@@ -67,7 +67,7 @@ describe('createPassphrase creates a random string with correct length', () => {
 		// @ts-expect-error testing non-string value
 		expect(() => createPassphrase(NaN, testData())).toThrowError('Value must be a numeric string')
 		// @ts-expect-error testing nullish values
-		expect(() => createPassphrase(null, testData())).toThrowError('Length ¯cannot be undefined or null')
+		expect(() => createPassphrase(null, testData())).toThrowError('Length cannot be undefined or null')
 	})
 })
 
