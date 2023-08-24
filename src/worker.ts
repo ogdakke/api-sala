@@ -76,12 +76,16 @@ const handler: ExportedHandler = {
 			)
 		}
 
+		/**
+		 * GET method for API
+		 */
 		if (request.method === 'GET') {
 			const url = new URL(request.url)
 			const { passLength, data } = extractSearchParams(url)
 
 			try {
 				const passphrase = createPassphrase(passLength, data)
+				logRequestData(request)
 				return new Response(
 					JSON.stringify({
 						passphrase: passphrase,
@@ -141,6 +145,10 @@ function extractSearchParams(url: URL) {
 	}
 
 	return { passLength, data }
+}
+
+function logRequestData(req: Request) {
+	console.log('Date:', new Date().toUTCString())
 }
 
 interface ResponseShape {
