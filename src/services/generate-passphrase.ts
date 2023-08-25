@@ -11,13 +11,23 @@ import {
 	specialsAndNums,
 } from '../config'
 
-import { IndexableInputValue } from '../models'
+import { IndexableInputValue, Lang } from '../models'
 
 const sanat = await import('../assets/sanat.json')
 
+export async function selectLanguage(lang: Lang) {
+	switch (lang) {
+		case 'en':
+			break
+		case 'se':
+			break
+		default:
+			return (await import('../assets/sanat.json')).default
+	}
+}
+
 let variableMinLength = minLengthForWords
 let variableMaxLength = maxLengthForChars
-
 export function createPassphrase(passLength = defaultLengthOfPassphrase, data = defaultResponse): string {
 	variableMinLength = data.words.selected ? minLengthForWords : minLengthForChars
 	variableMaxLength = data.words.selected ? maxLengthForWords : maxLengthForChars
