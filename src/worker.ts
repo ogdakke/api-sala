@@ -39,6 +39,7 @@ const headers = {
 	'Content-Type': 'application/json',
 	// Uncomment the line below if you want to allow cross-origin requests
 	'Access-Control-Allow-Origin': '*',
+	'Access-Control-Allow-Methods': 'GET, POST',
 	'Cache-Control': 'no-cache, no-store, must-revalidate', // Disable caching for this dynamic content
 }
 
@@ -72,7 +73,7 @@ const handler: ExportedHandler = {
 					error: 'not authorized',
 					reason: 'Provided key is not authorized',
 				}),
-				{ status: 403, headers: headers },
+				{ status: 401, headers: headers },
 			)
 		}
 
@@ -112,11 +113,16 @@ const handler: ExportedHandler = {
 					{ status: 200, headers: headers },
 				)
 			} catch (error) {
-				return new Response(JSON.stringify({ error: error.message }), { status: 400 })
+				if (error instanceof Error) {
+					return new Response(JSON.stringify({ error: error.message }), { status: 400 })
+				}
 			}
 		}
 
-		return new Response('Only GET and POST requests are allowed', { status: 405 })
+		return new Response('Only GET and POST requests are allowed', {
+			status: 405,
+			headers: headers,
+		})
 	},
 }
 /**
@@ -128,6 +134,7 @@ function extractSearchParams(url: URL) {
 	// Extract parameters
 	const passLength: string = url.searchParams.get('passLength') || minLengthForWords.toString()
 	const data: IndexableInputValue = {
+		language: url.searchParams.get('lang'),
 		words: {
 			selected: url.searchParams.get('words') === 'true',
 		},

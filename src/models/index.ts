@@ -5,6 +5,12 @@ export interface InputValue {
 	selected: boolean
 }
 
-export type IndexableInputValue = {
-	[key in InputLabel]: InputValue
+export interface IndexableInputValue {
+	language: Lang
+	words: InputValue
+	uppercase: InputValue
+	numbers: InputValue
+	randomChars: InputValue
 }
+
+export type Lang = 'fi' | 'en' | 'se'
