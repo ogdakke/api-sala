@@ -39,8 +39,8 @@ const PRESHARED_AUTH_HEADER_KEY = 'X-API-KEY'
 const headers = {
 	'Content-Type': 'application/json',
 	'Access-Control-Allow-Origin': '*',
-	'Access-Control-Allow-Methods': 'GET, POST',
-	'Access-Control-Allow-Headers': `Origin, ${PRESHARED_AUTH_HEADER_KEY}, Content-Type, Accept`,
+	'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+	'Access-Control-Allow-Headers': `${PRESHARED_AUTH_HEADER_KEY}, Content-Type`,
 	'Cache-Control': 'no-cache, no-store, must-revalidate', // Disable caching for this dynamic content
 }
 
@@ -71,6 +71,14 @@ const handler: ExportedHandler = {
 				}),
 				{ status: 401, headers: headers },
 			)
+		}
+
+		/**
+		 * OPTIONS method for API
+		 */
+		if (request.method === 'OPTIONS') {
+			// Respond to the preflight request with the appropriate headers
+			return new Response(null, { headers })
 		}
 
 		/**
