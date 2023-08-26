@@ -28,32 +28,28 @@ export interface Env {
 	//
 	// Example binding to a Queue. Learn more at https://developers.cloudflare.com/queues/javascript-apis/
 	// MY_QUEUE: Queue;
-	X_SECRET_KEY: string
-}
-
-declare global {
-	const X_SECRET_KEY: string
-}
-
-const headers = {
-	'Content-Type': 'application/json',
-	// Uncomment the line below if you want to allow cross-origin requests
-	'Access-Control-Allow-Origin': '*',
-	'Access-Control-Allow-Methods': 'GET, POST',
-	'Cache-Control': 'no-cache, no-store, must-revalidate', // Disable caching for this dynamic content
+	'X-API-KEY': string
 }
 
 /**
  * Custom header key to check for apiKey
  */
-const PRESHARED_AUTH_HEADER_KEY = 'X_SECRET_KEY'
+const PRESHARED_AUTH_HEADER_KEY = 'X-API-KEY'
+
+const headers = {
+	'Content-Type': 'application/json',
+	'Access-Control-Allow-Origin': '*',
+	'Access-Control-Allow-Methods': 'GET, POST',
+	'Access-Control-Allow-Headers': `Origin, ${PRESHARED_AUTH_HEADER_KEY}, Content-Type, Accept`,
+	'Cache-Control': 'no-cache, no-store, must-revalidate', // Disable caching for this dynamic content
+}
 
 const handler: ExportedHandler = {
 	async fetch(request: Request, env) {
 		/**
 		 * API key from env. Locally read from .dev.vars | in prod from configuration
 		 */
-		const apiKey = (env as Env).X_SECRET_KEY
+		const apiKey = (env as Env)[PRESHARED_AUTH_HEADER_KEY]
 
 		/**
 		 * The user sent key, that will be compared with apiKey
@@ -86,7 +82,6 @@ const handler: ExportedHandler = {
 
 			try {
 				const passphrase = createPassphrase(passLength, data)
-				logRequestData(request)
 				return new Response(
 					JSON.stringify({
 						passphrase: passphrase,
@@ -151,10 +146,6 @@ function extractSearchParams(url: URL) {
 	}
 
 	return { passLength, data }
-}
-
-function logRequestData(req?: Request) {
-	console.log('Date:', new Date().toUTCString())
 }
 
 interface PassphraseData {
