@@ -50,8 +50,7 @@ const handler: ExportedHandler = {
 		if (!validateSecret(preSharedKey, apiKey)) {
 			return new Response(
 				JSON.stringify({
-					error: 'not authorized',
-					reason: 'Provided key is not authorized',
+					error: 'Provided key is not authorized',
 				}),
 				{ status: 401, headers: headers },
 			)
@@ -80,7 +79,7 @@ async function generateAndRespond(requestData: PassphraseRequestData): Promise<R
 	const { passLength, data } = requestData
 
 	try {
-		const passphrase = createPassphrase(passLength, data)
+		const passphrase = await createPassphrase(data.language, passLength, data)
 		return new Response(
 			JSON.stringify({
 				passphrase: passphrase,

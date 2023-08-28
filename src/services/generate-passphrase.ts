@@ -13,33 +13,51 @@ import {
 
 import { IndexableInputValue, Lang } from '../models'
 
-const sanat = await import('../assets/sanat.json')
+const datasets: { [key in Lang]: string[] | undefined } = {
+	fi: undefined,
+	en: undefined,
+	se: undefined,
+}
 
-export async function selectLanguage(lang: Lang) {
+// A function to dynamically import dataset based on language
+export async function selectLanguage(lang: Lang): Promise<string[]> {
+	if (datasets[lang] !== undefined) {
+		console.log('Hit from cache: ', lang)
+		return datasets[lang]
+	}
+
 	switch (lang) {
 		case 'en':
-			break
-		case 'se':
-			break
+			return (await import('../assets/en.json')).default as string[]
+
+		// case 'se':
+		// 	break
 		default:
-			return (await import('../assets/sanat.json')).default
+			return (await import('../assets/fi.json')).default
 	}
 }
 
 let variableMinLength = minLengthForWords
 let variableMaxLength = maxLengthForChars
-export function createPassphrase(passLength = defaultLengthOfPassphrase, data = defaultResponse): string {
+
+export async function createPassphrase(
+	language: Lang,
+	passLength = defaultLengthOfPassphrase,
+	data = defaultResponse,
+): Promise<string> {
+	const dataset = await selectLanguage(language)
+
 	variableMinLength = data.words.selected ? minLengthForWords : minLengthForChars
 	variableMaxLength = data.words.selected ? maxLengthForWords : maxLengthForChars
 
 	const length = validateStringToBeNumber(passLength)
 
-	return handleReturns(length, data)
+	return handleReturns(length, data, dataset)
 }
 
-function handleReturns(length: number, data: IndexableInputValue): string {
+function handleReturns(length: number, data: IndexableInputValue, dataset: string[]): string {
 	const USER_SPECIALS = data.randomChars.value || ''
-	const wordString = data.words.selected ? getWordsWithObject(length, sanat.default) : null
+	const wordString = data.words.selected ? getWordsWithObject(length, dataset) : null
 
 	let finalString: string
 
@@ -189,7 +207,7 @@ function generateRandomNumberInRange(min: number, max: number): number {
 	const range = max - min
 
 	if (max <= min) {
-		throw new Error('Max must be larger than min')
+		throw new Error(`Max '${max}' must be larger than min: '${min}'`)
 	}
 	const requestBytes = Math.ceil(Math.log2(range) / 8)
 	if (requestBytes === 0) {

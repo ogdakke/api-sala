@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+dependencies:
+  wordlist-english:
+    specifier: ^1.2.1
+    version: 1.2.1
+
 devDependencies:
   '@cloudflare/workers-types':
     specifier: ^4.20230821.0
@@ -1728,6 +1733,10 @@ packages:
       siginfo: 2.0.0
       stackback: 0.0.2
     dev: true
+
+  /wordlist-english@1.2.1:
+    resolution: {integrity: sha512-vaiQQiu95UeON0WZFtiTrWfZmIiUd2rhrhMCBeEzwq3oTVzHCX8naGCqv/smSspE9kH2sN+E8lZyV0JZjqSzGw==}
+    dev: false
 
   /workerd@1.20230814.1:
     resolution: {integrity: sha512-zJeSEteXuAD+bpYJT8WvzTAHvIAkKPVxOV+Jy6zCLKz5e08N3OUbAF+wrvGWc8b2aB1sj+IYsdXfkv4puH+qXQ==}
