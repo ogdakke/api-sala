@@ -1,5 +1,6 @@
-import { IndexableInputValue } from '../models'
+import { IndexableInputValue, Lang } from '../models'
 
+export const validLanguages = ['fi', 'se', 'en']
 export const defaultLengthOfPassphrase = '3'
 export const defaultResponse: IndexableInputValue = {
 	language: 'fi',

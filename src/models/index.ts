@@ -14,3 +14,8 @@ export interface IndexableInputValue {
 }
 
 export type Lang = 'fi' | 'en' | 'se'
+
+export interface PassphraseRequestData {
+	passLength: string
+	data: IndexableInputValue
+}

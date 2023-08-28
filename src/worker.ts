@@ -1,33 +1,9 @@
-import { minLengthForWords } from './config'
-import { IndexableInputValue } from './models'
+import { minLengthForWords, validLanguages } from './config'
+import { IndexableInputValue, Lang, PassphraseRequestData } from './models'
 import { createPassphrase } from './services/generate-passphrase'
 import { validateSecret } from './services/validate-secret'
 
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
-
 export interface Env {
-	// Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
-	// MY_KV_NAMESPACE: KVNamespace;
-	//
-	// Example binding to Durable Object. Learn more at https://developers.cloudflare.com/workers/runtime-apis/durable-objects/
-	// MY_DURABLE_OBJECT: DurableObjectNamespace;
-	//
-	// Example binding to R2. Learn more at https://developers.cloudflare.com/workers/runtime-apis/r2/
-	// MY_BUCKET: R2Bucket;
-	//
-	// Example binding to a Service. Learn more at https://developers.cloudflare.com/workers/runtime-apis/service-bindings/
-	// MY_SERVICE: Fetcher;
-	//
-	// Example binding to a Queue. Learn more at https://developers.cloudflare.com/queues/javascript-apis/
-	// MY_QUEUE: Queue;
 	'X-API-KEY': string
 }
 
@@ -41,11 +17,19 @@ const headers = {
 	'Access-Control-Allow-Origin': '*',
 	'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 	'Access-Control-Allow-Headers': `${PRESHARED_AUTH_HEADER_KEY}, Content-Type`,
-	'Cache-Control': 'no-cache, no-store, must-revalidate', // Disable caching for this dynamic content
+	'Cache-Control': 'no-cache, no-store, must-revalidate',
 }
 
 const handler: ExportedHandler = {
 	async fetch(request: Request, env) {
+		/**
+		 * OPTIONS method for API
+		 */
+		if (request.method === 'OPTIONS') {
+			// Respond to the preflight request with the appropriate headers
+			return new Response(null, { status: 200, headers: headers })
+		}
+
 		/**
 		 * API key from env. Locally read from .dev.vars | in prod from configuration
 		 */
@@ -74,52 +58,15 @@ const handler: ExportedHandler = {
 		}
 
 		/**
-		 * OPTIONS method for API
-		 */
-		if (request.method === 'OPTIONS') {
-			// Respond to the preflight request with the appropriate headers
-			return new Response(null, { headers })
-		}
-
-		/**
-		 * GET method for API
+		 * GET, POST methods for API
 		 */
 		if (request.method === 'GET') {
 			const url = new URL(request.url)
-			const { passLength, data } = extractSearchParams(url)
-
-			try {
-				const passphrase = createPassphrase(passLength, data)
-				return new Response(
-					JSON.stringify({
-						passphrase: passphrase,
-						passLength: passphrase.length,
-					}),
-					{ status: 200, headers: headers },
-				)
-			} catch (error) {
-				if (error instanceof Error) {
-					return new Response(JSON.stringify({ error: error.message }), { status: 400 })
-				}
-			}
+			const requestData = extractSearchParams(url)
+			return generateAndRespond(requestData)
 		} else if (request.method === 'POST') {
-			const { passLength, data }: PassphraseData = (await request.json()) || undefined
-			console.log(data)
-
-			try {
-				const passphrase = createPassphrase(passLength, data)
-				return new Response(
-					JSON.stringify({
-						passphrase: passphrase,
-						passLength: passphrase.length,
-					}),
-					{ status: 200, headers: headers },
-				)
-			} catch (error) {
-				if (error instanceof Error) {
-					return new Response(JSON.stringify({ error: error.message }), { status: 400 })
-				}
-			}
+			const requestData: PassphraseRequestData = (await request.json()) || undefined
+			return generateAndRespond(requestData)
 		}
 
 		return new Response('Only GET and POST requests are allowed', {
@@ -128,16 +75,43 @@ const handler: ExportedHandler = {
 		})
 	},
 }
+
+async function generateAndRespond(requestData: PassphraseRequestData): Promise<Response> {
+	const { passLength, data } = requestData
+
+	try {
+		const passphrase = createPassphrase(passLength, data)
+		return new Response(
+			JSON.stringify({
+				passphrase: passphrase,
+				passLength: passphrase.length,
+			}),
+			{ status: 200, headers: headers },
+		)
+	} catch (error) {
+		if (error instanceof Error) {
+			return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: headers })
+		}
+	}
+	// Ideally, this shouldn't be reached.
+	return new Response('Unexpected server error', { status: 500, headers: headers })
+}
+
 /**
  * extract all needed params from the url
  * @param url url to extract from
- * @returns passlength, data
+ * @returns passlength
+ * @returns data
  */
-function extractSearchParams(url: URL) {
+function extractSearchParams(url: URL): PassphraseRequestData {
 	// Extract parameters
 	const passLength: string = url.searchParams.get('passLength') || minLengthForWords.toString()
+
+	const langFromParams = url.searchParams.get('lang') as Lang
+	const lang: Lang = validLanguages.includes(langFromParams) ? langFromParams : 'fi'
+
 	const data: IndexableInputValue = {
-		language: url.searchParams.get('lang'),
+		language: lang,
 		words: {
 			selected: url.searchParams.get('words') === 'true',
 		},
@@ -154,11 +128,6 @@ function extractSearchParams(url: URL) {
 	}
 
 	return { passLength, data }
-}
-
-interface PassphraseData {
-	passLength: string
-	data: IndexableInputValue
 }
 
 export default handler
