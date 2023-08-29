@@ -1,5 +1,5 @@
-import { minLengthForWords, validLanguages } from './config'
-import { IndexableInputValue, Lang, PassphraseRequestData } from './models'
+import { defaultLengthOfPassphrase, defaultResponse, minLengthForChars, validLanguages } from './config'
+import { Language, PassphraseRequestData, SimpleJsonRequestSchema } from './models'
 import { createPassphrase } from './services/generate-passphrase'
 import { validateSecret } from './services/validate-secret'
 
@@ -41,7 +41,10 @@ const handler: ExportedHandler = {
 		const preSharedKey = request.headers.get(PRESHARED_AUTH_HEADER_KEY)
 
 		if (preSharedKey == null) {
-			return new Response(JSON.stringify({ error: 'no authorization key found' }), { status: 403, headers: headers })
+			return new Response(JSON.stringify({ error: 'no authorization key found' }), {
+				status: 403,
+				headers: headers,
+			})
 		}
 
 		/**
@@ -61,10 +64,11 @@ const handler: ExportedHandler = {
 		 */
 		if (request.method === 'GET') {
 			const url = new URL(request.url)
-			const requestData = extractSearchParams(url)
+			const extractedParams = extractSearchParams(url)
+			const requestData = mapRequestParametres(extractedParams)
 			return generateAndRespond(requestData)
 		} else if (request.method === 'POST') {
-			const requestData: PassphraseRequestData = (await request.json()) || undefined
+			const requestData = mapRequestParametres(await request.json())
 			return generateAndRespond(requestData)
 		}
 
@@ -88,6 +92,7 @@ async function generateAndRespond(requestData: PassphraseRequestData): Promise<R
 			{ status: 200, headers: headers },
 		)
 	} catch (error) {
+		console.error(error)
 		if (error instanceof Error) {
 			return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: headers })
 		}
@@ -102,31 +107,42 @@ async function generateAndRespond(requestData: PassphraseRequestData): Promise<R
  * @returns passlength
  * @returns data
  */
-function extractSearchParams(url: URL): PassphraseRequestData {
-	// Extract parameters
-	const passLength: string = url.searchParams.get('passLength') || minLengthForWords.toString()
+function extractSearchParams(url: URL): SimpleJsonRequestSchema {
+	const language = url.searchParams.get('lang') as Language
+	const passLength = url.searchParams.get('passLength')
+	const words = url.searchParams.get('words') === 'true'
+	const randomCharsValue = url.searchParams.get('randomCharsValue')
+	const randomChars = url.searchParams.get('randomChars') === 'true'
+	const numbers = url.searchParams.get('numbers') === 'true'
+	const uppercase = url.searchParams.get('uppercase') === 'true'
 
-	const langFromParams = url.searchParams.get('lang') as Lang
-	const lang: Lang = validLanguages.includes(langFromParams) ? langFromParams : 'fi'
+	return { language, passLength, words, numbers, randomChars, randomCharsValue, uppercase }
+}
 
-	const data: IndexableInputValue = {
-		language: lang,
-		words: {
-			selected: url.searchParams.get('words') === 'true',
-		},
-		randomChars: {
-			value: url.searchParams.get('randomCharsValue') || '',
-			selected: url.searchParams.get('randomChars') === 'true',
-		},
-		numbers: {
-			selected: url.searchParams.get('numbers') === 'true',
-		},
-		uppercase: {
-			selected: url.searchParams.get('uppercase') === 'true',
+function mapRequestParametres(params: SimpleJsonRequestSchema): PassphraseRequestData {
+	const { language, passLength, words, numbers, randomChars, randomCharsValue, uppercase } = params
+
+	return {
+		passLength:
+			passLength ||
+			(words ?? defaultResponse.words.selected ? defaultLengthOfPassphrase : minLengthForChars.toString()),
+		data: {
+			language: language ?? defaultResponse.language,
+			words: {
+				selected: words ?? defaultResponse.words.selected,
+			},
+			randomChars: {
+				value: randomCharsValue ?? defaultResponse.randomChars.value,
+				selected: randomChars ?? defaultResponse.randomChars.selected,
+			},
+			numbers: {
+				selected: numbers ?? defaultResponse.numbers.selected,
+			},
+			uppercase: {
+				selected: uppercase ?? defaultResponse.uppercase.selected,
+			},
 		},
 	}
-
-	return { passLength, data }
 }
 
 export default handler
