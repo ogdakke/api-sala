@@ -2,51 +2,71 @@ import {
 	characters,
 	charactersAndSpecialCharacters,
 	charsWithNumbers,
-	defaultLengthOfPassphrase,
-	defaultResponse,
+	generationErrorMessages,
 	maxLengthForChars,
 	maxLengthForWords,
 	minLengthForChars,
 	minLengthForWords,
 	specialsAndNums,
+	validLanguages,
 } from '../config'
 
-import { IndexableInputValue, Lang } from '../models'
+import { IndexableInputValue, Language } from '../models'
 
-const sanat = await import('../assets/sanat.json')
+const datasets: { [key in Language]: string[] } = {
+	fi: [],
+	en: [],
+	se: [],
+}
 
-export async function selectLanguage(lang: Lang) {
+// dynamically import dataset based on language
+export async function selectLanguage(lang: Language): Promise<string[]> {
+	if (!validLanguages.includes(lang)) {
+		throw new Error(`Supplied language is not valid. Valid languages are: ${validLanguages}`)
+	}
+
+	if (datasets[lang][0]) {
+		console.log('Cache hit for lang:', lang)
+		return datasets[lang]
+	}
+
 	switch (lang) {
 		case 'en':
-			break
-		case 'se':
-			break
+			datasets['en'] = (await import('../assets/en.json')).default as string[]
+			return datasets['en']
 		default:
-			return (await import('../assets/sanat.json')).default
+			datasets['fi'] = (await import('../assets/fi.json')).default
+			return datasets['fi']
 	}
 }
 
-let variableMinLength = minLengthForWords
-let variableMaxLength = maxLengthForChars
-export function createPassphrase(passLength = defaultLengthOfPassphrase, data = defaultResponse): string {
-	variableMinLength = data.words.selected ? minLengthForWords : minLengthForChars
-	variableMaxLength = data.words.selected ? maxLengthForWords : maxLengthForChars
+/**
+ * Generates a passphrase/password based on supplied parametres
+ */
+export async function createPassphrase(
+	language: Language,
+	passLength: string,
+	data: IndexableInputValue,
+): Promise<string> {
+	const dataset = await selectLanguage(language)
+	const minLength = data.words.selected ? minLengthForWords : minLengthForChars
+	const maxLength = data.words.selected ? maxLengthForWords : maxLengthForChars
 
-	const length = validateStringToBeNumber(passLength)
+	const len = validateStringToBeValidNumber(passLength, minLength, maxLength)
 
-	return handleReturns(length, data)
+	return handleReturns(len, data, dataset)
 }
 
-function handleReturns(length: number, data: IndexableInputValue): string {
+function handleReturns(len: number, data: IndexableInputValue, dataset: string[]): string {
 	const USER_SPECIALS = data.randomChars.value || ''
-	const wordString = data.words.selected ? getWordsWithObject(length, sanat.default) : null
+	const wordString = data.words.selected ? getWordsWithObject(len, dataset) : null
 
 	let finalString: string
 
 	if (wordString !== null) {
 		finalString = handleWordsTrue(data, wordString, USER_SPECIALS)
 	} else {
-		finalString = handleWordsFalse(data, length)
+		finalString = handleRandomCharStrings(data, len)
 	}
 
 	if (data.uppercase.selected && !data.words.selected) {
@@ -58,13 +78,11 @@ function handleReturns(length: number, data: IndexableInputValue): string {
 
 function handleWordsTrue(data: IndexableInputValue, wordString: string[], USER_SPECIALS: string): string {
 	if (data.randomChars.value != null) {
-		const joinedWordString = applyTransformationsToWords(data, wordString).join(USER_SPECIALS)
-		return joinedWordString
+		return applyTransformationsToWords(data, wordString).join(USER_SPECIALS)
 	}
 
 	if (data.numbers.selected) {
-		const numberedArr = randomNumberOnString(wordString)
-		return numberedArr.join('').toString()
+		return randomNumberOnString(wordString).join('').toString()
 	}
 
 	if (data.uppercase.selected) {
@@ -89,23 +107,23 @@ function applyTransformationsToWords(data: IndexableInputValue, wordString: stri
 	return wordString
 }
 
-function handleWordsFalse(data: IndexableInputValue, length: number): string {
+function handleRandomCharStrings(data: IndexableInputValue, len: number): string {
 	if (data.randomChars.selected && data.numbers.selected) {
-		return createFromString(specialsAndNums, length)
+		return createFromString(specialsAndNums, len)
 	}
 
 	if (!data.numbers.selected && !data.randomChars.selected) {
-		return createFromString(characters, length)
+		return createFromString(characters, len)
 	}
 
 	if (data.numbers.selected) {
-		return createFromString(charsWithNumbers, length)
+		return createFromString(charsWithNumbers, len)
 	}
 
 	if (data.randomChars.selected) {
-		return createFromString(charactersAndSpecialCharacters, length)
+		return createFromString(charactersAndSpecialCharacters, len)
 	}
-
+	new Error(`Something went wrong with getting the parametres`)
 	return ' '
 }
 
@@ -114,43 +132,49 @@ function handleWordsFalse(data: IndexableInputValue, length: number): string {
  * @param stringToUse string that contains all the chars to generate the random string from
  * @returns randomized string
  */
-const createFromString = (stringToUse: string, length: number): string => {
-	const numArr = generateRandomArray(length, 0, stringToUse.length - 1)
+const createFromString = (stringToUse: string, len: number): string => {
+	const numArr = generateRandomArray(len, 0, stringToUse.length - 1)
 	const charArr = stringToUse.split('')
 
 	const str: string[] = []
-	numArr.map((_num, i) => {
+	numArr.forEach((_num, i) => {
 		return str.push(charArr[numArr[i]])
 	})
 
 	return str.join('')
 }
 
-const validateStringToBeNumber = (stringToCheck: string) => {
+const validateStringToBeValidNumber = (stringToCheck: string, min: number, max: number): number => {
+	const errors = generationErrorMessages(min, max)
+
+	if (typeof stringToCheck !== 'string') {
+		throw new Error(errors.notString)
+	}
+
 	if (stringToCheck == null) {
 		// Since there is a default value, this will probably never be hit
-		throw new Error('Length cannot be undefined or null')
+		throw new Error(errors.nullOrUndefined)
 	}
 
 	if (isNaN(Number(stringToCheck))) {
-		throw new Error('Value must be a numeric string')
+		throw new Error(errors.notNumericString)
 	}
 
-	const strAsNumber = parseInt(stringToCheck)
+	const strAsNumber = parseInt(stringToCheck, 10)
 
 	if (strAsNumber < 1) {
-		throw new Error('Value must be a positive number larger than 0')
+		throw new Error(errors.smallerThanOne)
 	}
 
-	if (strAsNumber > variableMaxLength) {
-		throw new Error(`Value must not exceed ${variableMaxLength}`)
+	if (strAsNumber > max) {
+		throw new Error(errors.tooLong)
 	}
 
-	if (strAsNumber < variableMinLength) {
-		throw new Error(`Value cannot be smaller than ${variableMinLength}`)
+	if (strAsNumber < min) {
+		throw new Error(errors.tooShort)
 	}
 
-	return strAsNumber
+	return Math.round(strAsNumber)
 }
 
 /**
@@ -175,7 +199,6 @@ const toUppercase = (stringToUpper: string[] | string): string | string[] => {
 
 	if (typeof stringToUpper === 'string') {
 		return someCharToUpper(stringToUpper)
-		// return stringToUpper.toUpperCase()
 	}
 	const strArr: string[] = []
 	stringToUpper.map((str) => {
@@ -189,7 +212,7 @@ function generateRandomNumberInRange(min: number, max: number): number {
 	const range = max - min
 
 	if (max <= min) {
-		throw new Error('Max must be larger than min')
+		throw new Error(`Max '${max}' must be larger than min: '${min}'`)
 	}
 	const requestBytes = Math.ceil(Math.log2(range) / 8)
 	if (requestBytes === 0) {
@@ -217,13 +240,13 @@ function generateRandomNumberInRange(min: number, max: number): number {
 }
 
 /**
- * generates a array of random number
- * @param {number} length how many numbers are in the array
+ * generates an array of random numbers
+ * @param {number} len how many numbers are in the array
  * @returns array of numbers
  */
-function generateRandomArray(length: number, min: number, max: number): number[] {
+function generateRandomArray(len: number, min: number, max: number): number[] {
 	const arr = []
-	for (let i = 0; i < length; i++) {
+	for (let i = 0; i < len; i++) {
 		const randomNumber = generateRandomNumberInRange(min, max)
 		arr.push(...[randomNumber])
 	}
@@ -235,9 +258,9 @@ function generateRandomArray(length: number, min: number, max: number): number[]
  * @param stringArrToConvert string[] to capitalize
  * @returns capitalised strings
  */
-function capitalizeFirstLetter(stringArrToConvert: string[]): string[] {
-	if (stringArrToConvert === undefined) {
-		throw new Error('Virhe')
+function capitalizeFirstLetter(stringArrToConvert: string[] | undefined): string[] {
+	if (stringArrToConvert == null) {
+		throw new Error(`Error capitalising string`)
 	}
 	const convertedArr = stringArrToConvert.map((sana) => {
 		return sana.charAt(0).toUpperCase() + sana.slice(1)
@@ -247,28 +270,27 @@ function capitalizeFirstLetter(stringArrToConvert: string[]): string[] {
 
 /**
  *
- * @param length length of the random number array that is passed in
- * @param objektiSanat the words as a array that are used to create phrases
- * @returns array of strings
+ * @param len length of the random number array that is passed in
+ * @param stringDataset the words as an string[] that are used to create phrases
+ * @returns array of randomly selected strings
  */
-function getWordsWithObject(length: number, objektiSanat: string[]): string[] {
-	// console.time("length")
-	const maxCount = objektiSanat.length - 1 // the max word count in sanat.json
+function getWordsWithObject(len: number, stringDataset: string[]): string[] {
+	const maxCount = stringDataset.length - 1 // the max word count in [language].json
 
-	// const then = performance.now()
-	const randomNumsArray = generateRandomArray(length, 0, maxCount)
+	const randomNumsArray = generateRandomArray(len, 0, maxCount)
 
 	const sanaArray: string[] = []
 
 	for (const num of randomNumsArray) {
 		try {
-			sanaArray.push(objektiSanat[num])
+			sanaArray.push(stringDataset[num])
 		} catch (error) {
-			// sometimes it returned undefined from the capitalizeFirstLetter function, so catch that here.
+			// sometimes capitalizeFirstLetter function returns undefined, so catch that here.
+			// Should really not propagate this far.
 			console.error(error)
+			throw new Error(`Error `)
 		}
 	}
-	// console.timeEnd("length")
 	return sanaArray
 }
 
@@ -277,7 +299,11 @@ function getWordsWithObject(length: number, objektiSanat: string[]): string[] {
  * @param stringArr array of strings from which the string is selected
  * @returns string[]
  */
-const randomNumberOnString = (stringArr: string[]): string[] => {
+const randomNumberOnString = (stringArr: string[] | undefined): string[] => {
+	if (stringArr == null) {
+		throw new Error(`no array of strings generated`)
+	}
+
 	const indexToSelect = generateRandomNumberInRange(0, stringArr.length)
 	const numToPadWith = generateRandomNumberInRange(0, 10).toString()
 

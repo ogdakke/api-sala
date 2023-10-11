@@ -1,6 +1,6 @@
-import { IndexableInputValue, Lang } from '../models'
+import { IndexableInputValue } from '../models'
 
-export const validLanguages = ['fi', 'se', 'en']
+export const validLanguages = ['fi', 'en']
 export const defaultLengthOfPassphrase = '3'
 export const defaultResponse: IndexableInputValue = {
 	language: 'fi',
@@ -24,11 +24,23 @@ export const defaultResponse: IndexableInputValue = {
 
 export const minLengthForChars = 4
 export const minLengthForWords = 1
-export const maxLengthForChars = 64
-export const maxLengthForWords = 12
+export const maxLengthForChars = 128
+export const maxLengthForWords = 28
 
-export const specialsAndNums = 'abcdefghijklmnopqrstuyäöxz1234567890><,.-_*?+/()@%&!$€=#'
-export const charactersAndSpecialCharacters = 'abcdefghijklmnopqrstuyäöxz><,.-_*?+/()@%&!$€=#'
+export const specialsAndNums = 'abcdefghijklmnopqrstuyäöxz1234567890><,.-_*?+()@%&!$€=#'
+export const charactersAndSpecialCharacters = 'abcdefghijklmnopqrstuyäöxz><,.-_*?+()@%&!$€=#'
 export const charsWithNumbers = 'abcdefghijklmnopqrstuyäöxz1234567890'
 export const characters = 'abcdefghijklmnopqrstuyäöxz'
-export const specials = '><,.-_*?+/()@%&!$€=#'
+export const specials = '><,.-_*?+()@%&!$€=#'
+
+export const generationErrorMessages = (min: number, max: number) => {
+	const labels = {
+		notString: 'Length must be of correct type',
+		nullOrUndefined: 'Length cannot be undefined or null',
+		notNumericString: 'Length must be a string containing a numeric integer',
+		smallerThanOne: 'Length must be a positive number larger than 0',
+		tooLong: `Length must not exceed ${max}`,
+		tooShort: `Length cannot be smaller than ${min}`,
+	}
+	return labels
+}
