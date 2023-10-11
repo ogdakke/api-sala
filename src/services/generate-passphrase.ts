@@ -2,6 +2,7 @@ import {
 	characters,
 	charactersAndSpecialCharacters,
 	charsWithNumbers,
+	generationErrorMessages,
 	maxLengthForChars,
 	maxLengthForWords,
 	minLengthForChars,
@@ -151,31 +152,33 @@ const createFromString = (stringToUse: string, len: number): string => {
 }
 
 const validateStringToBeNumber = (stringToCheck: string): number => {
+	const errors = generationErrorMessages(variableMinLength, variableMaxLength)
+
 	if (typeof stringToCheck !== 'string') {
-		throw new Error('Length must be of correct type')
+		throw new Error(errors.notString)
 	}
 
 	if (stringToCheck == null) {
 		// Since there is a default value, this will probably never be hit
-		throw new Error('Length cannot be undefined or null')
+		throw new Error(errors.nullOrUndefined)
 	}
 
 	if (isNaN(Number(stringToCheck))) {
-		throw new Error('Length must be a numeric string')
+		throw new Error(errors.notNumericString)
 	}
 
 	const strAsNumber = parseInt(stringToCheck, 10)
 
 	if (strAsNumber < 1) {
-		throw new Error('Length must be a positive number larger than 0')
+		throw new Error(errors.smallerThanOne)
 	}
 
 	if (strAsNumber > variableMaxLength) {
-		throw new Error(`Length must not exceed ${variableMaxLength}`)
+		throw new Error(errors.tooLong)
 	}
 
 	if (strAsNumber < variableMinLength) {
-		throw new Error(`Length cannot be smaller than ${variableMinLength}`)
+		throw new Error(errors.tooShort)
 	}
 
 	return Math.round(strAsNumber)

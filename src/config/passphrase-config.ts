@@ -32,3 +32,15 @@ export const charactersAndSpecialCharacters = 'abcdefghijklmnopqrstuyäöxz><,.-
 export const charsWithNumbers = 'abcdefghijklmnopqrstuyäöxz1234567890'
 export const characters = 'abcdefghijklmnopqrstuyäöxz'
 export const specials = '><,.-_*?+/()@%&!$€=#'
+
+export const generationErrorMessages = (min: number, max: number) => {
+	const labels = {
+		notString: 'Length must be of correct type',
+		nullOrUndefined: 'Length cannot be undefined or null',
+		notNumericString: 'Length must be a numeric string',
+		smallerThanOne: 'Length must be a positive number larger than 0',
+		tooLong: `Length must not exceed ${max}`,
+		tooShort: `Length cannot be smaller than ${min}`,
+	}
+	return labels
+}
