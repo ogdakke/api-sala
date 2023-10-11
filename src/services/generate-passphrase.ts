@@ -19,7 +19,7 @@ const datasets: { [key in Language]: string[] } = {
 	se: [],
 }
 
-// A function to dynamically import dataset based on language
+// dynamically import dataset based on language
 export async function selectLanguage(lang: Language): Promise<string[]> {
 	if (!validLanguages.includes(lang)) {
 		throw new Error(`Supplied language is not valid. Valid languages are: ${validLanguages}`)
@@ -40,15 +40,8 @@ export async function selectLanguage(lang: Language): Promise<string[]> {
 	}
 }
 
-let variableMinLength = minLengthForWords
-let variableMaxLength = maxLengthForChars
-
 /**
- * Generates a passPhrase/password based on supplied parametres
- * @param language
- * @param passLength
- * @param data
- * @returns passphrase, a string
+ * Generates a passphrase/password based on supplied parametres
  */
 export async function createPassphrase(
 	language: Language,
@@ -56,10 +49,10 @@ export async function createPassphrase(
 	data: IndexableInputValue,
 ): Promise<string> {
 	const dataset = await selectLanguage(language)
-	const len = validateStringToBeNumber(passLength)
+	const minLength = data.words.selected ? minLengthForWords : minLengthForChars
+	const maxLength = data.words.selected ? maxLengthForWords : maxLengthForChars
 
-	variableMinLength = data.words.selected ? minLengthForWords : minLengthForChars
-	variableMaxLength = data.words.selected ? maxLengthForWords : maxLengthForChars
+	const len = validateStringToBeValidNumber(passLength, minLength, maxLength)
 
 	return handleReturns(len, data, dataset)
 }
@@ -151,8 +144,8 @@ const createFromString = (stringToUse: string, len: number): string => {
 	return str.join('')
 }
 
-const validateStringToBeNumber = (stringToCheck: string): number => {
-	const errors = generationErrorMessages(variableMinLength, variableMaxLength)
+const validateStringToBeValidNumber = (stringToCheck: string, min: number, max: number): number => {
+	const errors = generationErrorMessages(min, max)
 
 	if (typeof stringToCheck !== 'string') {
 		throw new Error(errors.notString)
@@ -173,11 +166,11 @@ const validateStringToBeNumber = (stringToCheck: string): number => {
 		throw new Error(errors.smallerThanOne)
 	}
 
-	if (strAsNumber > variableMaxLength) {
+	if (strAsNumber > max) {
 		throw new Error(errors.tooLong)
 	}
 
-	if (strAsNumber < variableMinLength) {
+	if (strAsNumber < min) {
 		throw new Error(errors.tooShort)
 	}
 
@@ -206,7 +199,6 @@ const toUppercase = (stringToUpper: string[] | string): string | string[] => {
 
 	if (typeof stringToUpper === 'string') {
 		return someCharToUpper(stringToUpper)
-		// return stringToUpper.toUpperCase()
 	}
 	const strArr: string[] = []
 	stringToUpper.map((str) => {

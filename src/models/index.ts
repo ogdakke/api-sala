@@ -1,11 +1,4 @@
-export type InputKeys =
-	| 'words'
-	| 'uppercase'
-	| 'numbers'
-	| 'randomChars'
-	| 'language'
-	| 'passLength'
-	| 'randomCharsValue'
+export type InputKeys = 'words' | 'uppercase' | 'numbers' | 'randomChars' | 'language' | 'passLength' | 'separator'
 
 export interface InputValue {
 	value?: string // used in randomchars
@@ -33,6 +26,6 @@ export interface SimpleJsonRequestSchema {
 	words?: boolean | null
 	numbers?: boolean | null
 	randomChars?: boolean | null
-	randomCharsValue?: string | null
+	separator?: string | null
 	uppercase?: boolean | null
 }

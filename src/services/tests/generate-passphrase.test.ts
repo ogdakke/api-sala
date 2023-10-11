@@ -35,12 +35,12 @@ const testData = (config: TestConfig = {}): IndexableInputValue => {
 		...config,
 	} // Merge default values with provided ones
 
-	variableMinLength = word ? minLengthForWords : minLengthForChars
-	variableMaxLength = word ? maxLengthForWords : maxLengthForChars
+	variableMinLength = !!word ? minLengthForWords : minLengthForChars
+	variableMaxLength = !!word ? maxLengthForWords : maxLengthForChars
 	return {
 		language: language || 'fi',
 		words: {
-			selected: word || false, //If this is false, it will return a random string of characters
+			selected: !!word || false, //If this is false, it will return a random string of characters
 			value: '',
 		},
 		randomChars: {
@@ -59,7 +59,7 @@ const testData = (config: TestConfig = {}): IndexableInputValue => {
 }
 const testLang = testData().language
 const errors = generationErrorMessages(variableMinLength, variableMaxLength)
-describe('createPassphrase ,creates a random string with correct length', () => {
+describe('createPassphrase() creates a random string with correct length', () => {
 	it('should return a string with length 10', async () => {
 		expect(await createPassphrase(testLang, '10', testData())).toHaveLength(10)
 		expect(await createPassphrase(testLang, '10', testData({ numbers: true }))).toHaveLength(10)
@@ -67,32 +67,23 @@ describe('createPassphrase ,creates a random string with correct length', () => 
 	})
 
 	it('should return a string with length maxLengthForChars', async () => {
-		expect(await createPassphrase(testLang, maxLengthForChars.toString(), testData())).toHaveLength(64)
+		expect(await createPassphrase(testLang, maxLengthForChars.toString(), testData())).toHaveLength(maxLengthForChars)
 	})
 
-	it('should not return a string with weird values', async () => {
+	it('should throw errors on a string with weird values', async () => {
+		expect(await createPassphrase(testLang, 'huh', testData())).toThrowError(errors.notNumericString)
+		expect(async () => await createPassphrase(testLang, '007A', testData())).toThrowError(errors.notNumericString)
+		expect(async () => await createPassphrase(testLang, '10.5', testData())).toThrowError(errors.notNumericString)
+
 		expect(async () => await createPassphrase(testLang, '-1', testData())).toThrowError(errors.smallerThanOne)
-		expect(async () => await createPassphrase(testLang, 'huh', testData())).toThrowError(
-			'Length must be a numeric string',
-		)
-		expect(async () => await createPassphrase(testLang, '007A', testData())).toThrowError(
-			'Length must be a numeric string',
-		)
+		expect(async () => await createPassphrase(testLang, '1200', testData())).toThrowError(errors.tooLong)
 
-		expect(async () => await createPassphrase(testLang, '1200', testData())).toThrowError(
-			`Length must not exceed ${maxLengthForChars}`,
-		)
-
-		expect(async () => await createPassphrase(testLang, '3', testData())).toThrowError(
-			`Length cannot be smaller than ${minLengthForChars}`,
-		)
+		expect(async () => await createPassphrase(testLang, '3', testData())).toThrowError(errors.tooShort)
 
 		// @ts-expect-error testing non-string value
-		expect(async () => await createPassphrase(testLang, NaN, testData())).toThrowError('Value must be a numeric string')
+		expect(async () => await createPassphrase(testLang, NaN, testData())).toThrowError(errors.notNumericString)
 		// @ts-expect-error testing nullish values
-		expect(async () => await createPassphrase(testLang, null, testData())).toThrowError(
-			'Length cannot be undefined or null',
-		)
+		expect(async () => await createPassphrase(testLang, null, testData())).toThrowError(errors.nullOrUndefined)
 	})
 })
 

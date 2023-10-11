@@ -1,4 +1,4 @@
-import { defaultLengthOfPassphrase, defaultResponse, minLengthForChars, validLanguages } from './config'
+import { defaultLengthOfPassphrase, defaultResponse, minLengthForChars } from './config'
 import { Language, PassphraseRequestData, SimpleJsonRequestSchema } from './models'
 import { createPassphrase } from './services/generate-passphrase'
 import { validateSecret } from './services/validate-secret'
@@ -111,16 +111,16 @@ function extractSearchParams(url: URL): SimpleJsonRequestSchema {
 	const language = url.searchParams.get('lang') as Language
 	const passLength = url.searchParams.get('passLength')
 	const words = url.searchParams.get('words') === 'true'
-	const randomCharsValue = url.searchParams.get('randomCharsValue')
+	const separator = url.searchParams.get('separator')
 	const randomChars = url.searchParams.get('randomChars') === 'true'
 	const numbers = url.searchParams.get('numbers') === 'true'
 	const uppercase = url.searchParams.get('uppercase') === 'true'
 
-	return { language, passLength, words, numbers, randomChars, randomCharsValue, uppercase }
+	return { language, passLength, words, numbers, randomChars, separator: separator, uppercase }
 }
 
 function mapRequestParametres(params: SimpleJsonRequestSchema): PassphraseRequestData {
-	const { language, passLength, words, numbers, randomChars, randomCharsValue, uppercase } = params
+	const { language, passLength, words, numbers, randomChars, separator: separator, uppercase } = params
 
 	return {
 		passLength:
@@ -132,7 +132,7 @@ function mapRequestParametres(params: SimpleJsonRequestSchema): PassphraseReques
 				selected: words ?? defaultResponse.words.selected,
 			},
 			randomChars: {
-				value: randomCharsValue ?? defaultResponse.randomChars.value,
+				value: separator ?? defaultResponse.randomChars.value,
 				selected: randomChars ?? defaultResponse.randomChars.selected,
 			},
 			numbers: {
