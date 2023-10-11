@@ -1,6 +1,6 @@
 {
 	"name": "api-sala",
-	"version": "0.0.1",
+	"version": "1.0.0",
 	"private": true,
 	"scripts": {
 		"deploy": "pnpm run test --run --coverage && wrangler deploy",
