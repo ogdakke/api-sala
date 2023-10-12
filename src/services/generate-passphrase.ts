@@ -11,7 +11,7 @@ import {
 	validLanguages,
 } from '../config'
 
-import { IndexableInputValue, Language } from '../models'
+import { IndexableInputValue, Language, PassLength } from '../models'
 
 const datasets: { [key in Language]: string[] } = {
 	fi: [],
@@ -45,7 +45,7 @@ export async function selectLanguage(lang: Language): Promise<string[]> {
  */
 export async function createPassphrase(
 	language: Language,
-	passLength: string,
+	passLength: PassLength,
 	data: IndexableInputValue,
 ): Promise<string> {
 	const dataset = await selectLanguage(language)
@@ -144,23 +144,26 @@ const createFromString = (stringToUse: string, len: number): string => {
 	return str.join('')
 }
 
-const validateStringToBeValidNumber = (stringToCheck: string, min: number, max: number): number => {
+const validateStringToBeValidNumber = (passLength: PassLength, min: number, max: number): number => {
 	const errors = generationErrorMessages(min, max)
 
-	if (typeof stringToCheck !== 'string') {
-		throw new Error(errors.notString)
+	if (typeof passLength !== 'string' && typeof passLength !== 'number') {
+		throw new Error(errors.notStringOrNumber)
 	}
 
-	if (stringToCheck == null) {
+	if (passLength == null) {
 		// Since there is a default value, this will probably never be hit
 		throw new Error(errors.nullOrUndefined)
 	}
 
-	if (isNaN(Number(stringToCheck))) {
-		throw new Error(errors.notNumericString)
+	if (Number.isNaN(passLength)) {
+		throw new Error(errors.notNumericStringOrNumber)
 	}
+	const strAsNumber = typeof passLength === 'string' ? parseInt(passLength, 10) : passLength
 
-	const strAsNumber = parseInt(stringToCheck, 10)
+	if (isNaN(strAsNumber)) {
+		throw new Error(errors.notNumericStringOrNumber)
+	}
 
 	if (strAsNumber < 1) {
 		throw new Error(errors.smallerThanOne)

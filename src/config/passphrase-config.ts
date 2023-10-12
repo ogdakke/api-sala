@@ -35,9 +35,9 @@ export const specials = '><,.-_*?+()@%&!$€=#'
 
 export const generationErrorMessages = (min: number, max: number) => {
 	const labels = {
-		notString: 'Length must be of correct type',
+		notStringOrNumber: 'Type of length must be number or string',
 		nullOrUndefined: 'Length cannot be undefined or null',
-		notNumericString: 'Length must be a string containing a numeric integer',
+		notNumericStringOrNumber: 'Length must be a number, or a string containing a numeric integer',
 		smallerThanOne: 'Length must be a positive number larger than 0',
 		tooLong: `Length must not exceed ${max}`,
 		tooShort: `Length cannot be smaller than ${min}`,

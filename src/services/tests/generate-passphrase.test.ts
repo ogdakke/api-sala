@@ -35,17 +35,17 @@ const testData = (config: TestConfig = {}): IndexableInputValue => {
 		...config,
 	} // Merge default values with provided ones
 
-	variableMinLength = !!word ? minLengthForWords : minLengthForChars
-	variableMaxLength = !!word ? maxLengthForWords : maxLengthForChars
+	variableMinLength = word ? minLengthForWords : minLengthForChars
+	variableMaxLength = word ? maxLengthForWords : maxLengthForChars
 	return {
 		language: language || 'fi',
 		words: {
-			selected: !!word || false, //If this is false, it will return a random string of characters
+			selected: word || false, // If this is false, it will return a random string of characters
 			value: '',
 		},
 		randomChars: {
 			selected: randomCharactersInString || false,
-			value: inputFieldValueFromUser, //this only should apply if word === true
+			value: inputFieldValueFromUser, // this only should apply if word === true
 		},
 		uppercase: {
 			selected: uppercaseCharacters || false,
@@ -60,10 +60,15 @@ const testData = (config: TestConfig = {}): IndexableInputValue => {
 const testLang = testData().language
 const errors = generationErrorMessages(variableMinLength, variableMaxLength)
 describe('createPassphrase() creates a random string with correct length', () => {
-	it('should return a string with length 10', async () => {
-		expect(await createPassphrase(testLang, '10', testData())).toHaveLength(10)
+	it('should return a string with correct length', async () => {
+		expect(await createPassphrase(testLang, 10, testData())).toHaveLength(10)
 		expect(await createPassphrase(testLang, '10', testData({ numbers: true }))).toHaveLength(10)
 		expect(await createPassphrase(testLang, '10', testData({ randomCharactersInString: true }))).toHaveLength(10)
+
+		/**weird values, but they are number */
+		expect(await createPassphrase(testLang, '007A', testData())).toHaveLength(7)
+		expect(await createPassphrase(testLang, '000012Bklafkflask what???', testData())).toHaveLength(12)
+		expect(await createPassphrase(testLang, '10.5', testData())).toHaveLength(10)
 	})
 
 	it('should return a string with length maxLengthForChars', async () => {
@@ -71,19 +76,28 @@ describe('createPassphrase() creates a random string with correct length', () =>
 	})
 
 	it('should throw errors on a string with weird values', async () => {
-		expect(await createPassphrase(testLang, 'huh', testData())).toThrowError(errors.notNumericString)
-		expect(async () => await createPassphrase(testLang, '007A', testData())).toThrowError(errors.notNumericString)
-		expect(async () => await createPassphrase(testLang, '10.5', testData())).toThrowError(errors.notNumericString)
+		/** Testing parsing of strings */
+		await expect(async () => await createPassphrase(testLang, 'huh', testData())).rejects.toThrowError(
+			errors.notNumericStringOrNumber,
+		)
 
-		expect(async () => await createPassphrase(testLang, '-1', testData())).toThrowError(errors.smallerThanOne)
-		expect(async () => await createPassphrase(testLang, '1200', testData())).toThrowError(errors.tooLong)
+		await expect(async () => await createPassphrase(testLang, '-1', testData())).rejects.toThrowError(
+			errors.smallerThanOne,
+		)
+		await expect(async () => await createPassphrase(testLang, '1200', testData())).rejects.toThrowError(errors.tooLong)
 
-		expect(async () => await createPassphrase(testLang, '3', testData())).toThrowError(errors.tooShort)
+		await expect(async () => await createPassphrase(testLang, '3', testData())).rejects.toThrowError(errors.tooShort)
 
-		// @ts-expect-error testing non-string value
-		expect(async () => await createPassphrase(testLang, NaN, testData())).toThrowError(errors.notNumericString)
-		// @ts-expect-error testing nullish values
-		expect(async () => await createPassphrase(testLang, null, testData())).toThrowError(errors.nullOrUndefined)
+		/** Testing Numbers */
+		await expect(async () => await createPassphrase(testLang, -1, testData())).rejects.toThrowError(
+			errors.smallerThanOne,
+		)
+		await expect(async () => await createPassphrase(testLang, Infinity, testData())).rejects.toThrowError(
+			errors.tooLong,
+		)
+		await expect(async () => await createPassphrase(testLang, NaN, testData())).rejects.toThrowError(
+			errors.notNumericStringOrNumber,
+		)
 	})
 })
 
