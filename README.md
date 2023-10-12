@@ -6,29 +6,38 @@ Now in either Finnish or English
 
 ## API Specification
 
-`"key": type | default`
+`"key": type`
 
 ```typescript
+// default: 'fi'
+lang: 'en' | 'fi'
+
 // if false, a random string will be generated, if true, a passphrase consisting of random words will be generated.
-words: boolean | true
+// default: true
+words: boolean
 
 //between 4-128 if words=false, and 1-28 if words=true
-passLength: number | 3,
-	{
+// default: 3,
+passLength: number
+	restrictions: {
 		words: (false = 4 - 128),
 		words: (true = 1 - 28),
 	}
 
-uppercase: boolean | true
+// default: true
+uppercase: boolean
 
 // If words=false, add random characters in the result
-randomChars: boolean | true
+// default: true
+randomChars: boolean
 
 // If words=true, add a separator/delimiter string between words
-separator: string | '-'
+// default: '-'
+separator: string
 
 // Does result contain numbers
-numbers: boolean | true
+// default: true
+numbers: boolean
 ```
 
 ## Development setup
