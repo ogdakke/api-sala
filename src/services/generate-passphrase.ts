@@ -8,47 +8,18 @@ import {
 	minLengthForChars,
 	minLengthForWords,
 	specialsAndNums,
-	validLanguages,
 } from '../config'
 
-import { IndexableInputValue, Language, PassLength } from '../models'
-
-const datasets: { [key in Language]: string[] } = {
-	fi: [],
-	en: [],
-	se: [],
-}
-
-// dynamically import dataset based on language
-export async function selectLanguage(lang: Language): Promise<string[]> {
-	if (!validLanguages.includes(lang)) {
-		throw new Error(`Supplied language is not valid. Valid languages are: ${validLanguages}`)
-	}
-
-	if (datasets[lang][0]) {
-		console.log('Cache hit for lang:', lang)
-		return datasets[lang]
-	}
-
-	switch (lang) {
-		case 'en':
-			datasets['en'] = (await import('../assets/en.json')).default as string[]
-			return datasets['en']
-		default:
-			datasets['fi'] = (await import('../assets/fi.json')).default
-			return datasets['fi']
-	}
-}
+import { IndexableInputValue, PassLength } from '../models'
 
 /**
  * Generates a passphrase/password based on supplied parametres
  */
 export async function createPassphrase(
-	language: Language,
+	dataset: string[],
 	passLength: PassLength,
 	data: IndexableInputValue,
 ): Promise<string> {
-	const dataset = await selectLanguage(language)
 	const minLength = data.words.selected ? minLengthForWords : minLengthForChars
 	const maxLength = data.words.selected ? maxLengthForWords : maxLengthForChars
 

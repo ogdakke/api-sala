@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.0.2](https://github.com/ogdakke/api-sala/releases/1.0.2) - 12-10-2023
+
+### Added
+
+- Move `<language>.json` files to an R2 bucket
+
+### Changed
+
+- Changed the way the dataset is used, due to switch to R2 buckets
+
 ## [1.0.1](https://github.com/ogdakke/api-sala/releases/1.0.1) - 12-10-2023
 
 ### Changed

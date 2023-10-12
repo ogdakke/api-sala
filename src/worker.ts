@@ -4,6 +4,7 @@ import { createPassphrase } from './services/generate-passphrase'
 import { validateSecret } from './services/validate-secret'
 
 export interface Env {
+	SALA_STORE_BUCKET: R2Bucket
 	'X-API-KEY': string
 }
 
@@ -18,6 +19,12 @@ const headers = {
 	'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 	'Access-Control-Allow-Headers': `${PRESHARED_AUTH_HEADER_KEY}, Content-Type`,
 	'Cache-Control': 'no-cache, no-store, must-revalidate',
+}
+
+const apiErrors = {
+	noAuthorizationKey: 'no authorization key found',
+	notAuthorized: 'Provided key is not authorized',
+	errorFetchingBucket: 'Failed to fetch word set',
 }
 
 const handler: ExportedHandler = {
@@ -41,7 +48,7 @@ const handler: ExportedHandler = {
 		const preSharedKey = request.headers.get(PRESHARED_AUTH_HEADER_KEY)
 
 		if (preSharedKey == null) {
-			return new Response(JSON.stringify({ error: 'no authorization key found' }), {
+			return new Response(JSON.stringify({ error: apiErrors.noAuthorizationKey }), {
 				status: 403,
 				headers: headers,
 			})
@@ -53,7 +60,7 @@ const handler: ExportedHandler = {
 		if (!validateSecret(preSharedKey, apiKey)) {
 			return new Response(
 				JSON.stringify({
-					error: 'Provided key is not authorized',
+					error: apiErrors.notAuthorized,
 				}),
 				{ status: 401, headers: headers },
 			)
@@ -66,10 +73,12 @@ const handler: ExportedHandler = {
 			const url = new URL(request.url)
 			const extractedParams = extractSearchParams(url)
 			const requestData = mapRequestParametres(extractedParams)
-			return generateAndRespond(requestData)
+			const dataset = await (env as Env).SALA_STORE_BUCKET.get(requestData.data.language + '.json')
+			return generateAndRespond(requestData, dataset)
 		} else if (request.method === 'POST') {
 			const requestData = mapRequestParametres(await request.json())
-			return generateAndRespond(requestData)
+			const dataset = await (env as Env).SALA_STORE_BUCKET.get(requestData.data.language + '.json')
+			return generateAndRespond(requestData, dataset)
 		}
 
 		return new Response('Only GET and POST requests are allowed', {
@@ -79,11 +88,14 @@ const handler: ExportedHandler = {
 	},
 }
 
-async function generateAndRespond(requestData: PassphraseRequestData): Promise<Response> {
+async function generateAndRespond(requestData: PassphraseRequestData, bucket: R2ObjectBody | null): Promise<Response> {
 	const { passLength, data } = requestData
-
+	const dataset = await bucket?.json<string[]>()
 	try {
-		const passphrase = await createPassphrase(data.language, passLength, data)
+		if (dataset == null) {
+			throw new Error(apiErrors.errorFetchingBucket)
+		}
+		const passphrase = await createPassphrase(dataset, passLength, data)
 		return new Response(
 			JSON.stringify({
 				passphrase: passphrase,
