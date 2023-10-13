@@ -1,14 +1,12 @@
-import { Env } from './worker'
+import { Env } from './models'
 
+/** R2 bucket methods */
 export default {
 	async fetch(request: Request, env: Env) {
 		const url = new URL(request.url)
 		const key = url.pathname.slice(1)
 
 		switch (request.method) {
-			case 'PUT':
-				await env.SALA_STORE_BUCKET.put(key, request.body)
-				return new Response(`Put ${key} successfully!`)
 			case 'GET':
 				const object = await env.SALA_STORE_BUCKET.get(key)
 
@@ -23,15 +21,11 @@ export default {
 				return new Response(object.body, {
 					headers,
 				})
-			case 'DELETE':
-				await env.SALA_STORE_BUCKET.delete(key)
-				return new Response('Deleted!')
-
 			default:
 				return new Response('Method Not Allowed', {
 					status: 405,
 					headers: {
-						Allow: 'PUT, GET, DELETE',
+						Allow: 'GET',
 					},
 				})
 		}
