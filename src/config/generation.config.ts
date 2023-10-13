@@ -2,18 +2,16 @@ import { IndexableInputValue } from '../models'
 
 export const validLanguages = ['fi', 'en']
 export const defaultLengthOfPassphrase = '3'
+
 export const defaultResponse: IndexableInputValue = {
 	language: 'fi',
 	words: {
-		value: undefined,
 		selected: true,
 	},
 	uppercase: {
-		value: undefined,
 		selected: true,
 	},
 	numbers: {
-		value: undefined,
 		selected: true,
 	},
 	randomChars: {
