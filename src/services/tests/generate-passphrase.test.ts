@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-	generationErrorMessages,
 	maxLengthForChars,
 	maxLengthForWords,
 	minLengthForChars,
 	minLengthForWords,
+	validationErrorMessages,
 } from '../../config'
 import { IndexableInputValue, Language } from '../../models'
 import { createPassphrase } from '../generate-passphrase'
@@ -58,7 +58,7 @@ const testData = (config: TestConfig = {}): IndexableInputValue => {
 	}
 }
 const testLang = testData().language
-const errors = generationErrorMessages(variableMinLength, variableMaxLength)
+const errors = validationErrorMessages(variableMinLength, variableMaxLength)
 describe('createPassphrase() creates a random string with correct length', () => {
 	it('should return a string with correct length', async () => {
 		expect(await createPassphrase(testLang, 10, testData())).toHaveLength(10)

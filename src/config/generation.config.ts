@@ -2,18 +2,16 @@ import { IndexableInputValue } from '../models'
 
 export const validLanguages = ['fi', 'en']
 export const defaultLengthOfPassphrase = '3'
+
 export const defaultResponse: IndexableInputValue = {
 	language: 'fi',
 	words: {
-		value: undefined,
 		selected: true,
 	},
 	uppercase: {
-		value: undefined,
 		selected: true,
 	},
 	numbers: {
-		value: undefined,
 		selected: true,
 	},
 	randomChars: {
@@ -33,8 +31,8 @@ export const charsWithNumbers = 'abcdefghijklmnopqrstuyäöxz1234567890'
 export const characters = 'abcdefghijklmnopqrstuyäöxz'
 export const specials = '><,.-_*?+()@%&!$€=#'
 
-export const generationErrorMessages = (min: number, max: number) => {
-	const labels = {
+export const validationErrorMessages = (min: number, max: number) => {
+	const validationErrors = {
 		notStringOrNumber: 'Type of length must be number or string',
 		nullOrUndefined: 'Length cannot be undefined or null',
 		notNumericStringOrNumber: 'Length must be a number, or a string containing a numeric integer',
@@ -42,5 +40,11 @@ export const generationErrorMessages = (min: number, max: number) => {
 		tooLong: `Length must not exceed ${max}`,
 		tooShort: `Length cannot be smaller than ${min}`,
 	}
-	return labels
+	return validationErrors
+}
+
+export const generationErrors = {
+	noStringArrayFound: 'No string[] found to capitalize',
+	noStringArrayForAddingNumber: 'No string[] supplied to add number to',
+	noParametresFound: 'Something went wrong with getting the parametres',
 }

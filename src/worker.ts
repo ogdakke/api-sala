@@ -1,31 +1,13 @@
-import { defaultLengthOfPassphrase, defaultResponse, minLengthForChars } from './config'
-import { Language, PassphraseRequestData, SimpleJsonRequestSchema } from './models'
-import { createPassphrase } from './services/generate-passphrase'
-import { validateSecret } from './services/validate-secret'
-
-export interface Env {
-	SALA_STORE_BUCKET: R2Bucket
-	'X-API-KEY': string
-}
-
-/**
- * Custom header key to check for apiKey
- */
-const PRESHARED_AUTH_HEADER_KEY = 'X-API-KEY'
-
-const headers = {
-	'Content-Type': 'application/json',
-	'Access-Control-Allow-Origin': '*',
-	'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-	'Access-Control-Allow-Headers': `${PRESHARED_AUTH_HEADER_KEY}, Content-Type`,
-	'Cache-Control': 'no-cache, no-store, must-revalidate',
-}
-
-const apiErrors = {
-	noAuthorizationKey: 'no authorization key found',
-	notAuthorized: 'Provided key is not authorized',
-	errorFetchingBucket: 'Failed to fetch word set',
-}
+import {
+	PRESHARED_AUTH_HEADER_KEY,
+	apiErrors,
+	defaultLengthOfPassphrase,
+	defaultResponse,
+	headers,
+	minLengthForChars,
+} from './config'
+import { Env, Language, PassphraseRequestData, SimpleJsonRequestSchema } from './models'
+import { createPassphrase, validateSecret } from './services'
 
 const handler: ExportedHandler = {
 	async fetch(request: Request, env) {
@@ -76,12 +58,12 @@ const handler: ExportedHandler = {
 			const dataset = await (env as Env).SALA_STORE_BUCKET.get(requestData.data.language + '.json')
 			return generateAndRespond(requestData, dataset)
 		} else if (request.method === 'POST') {
-			const requestData = mapRequestParametres(await request.json())
+			const requestData = mapRequestParametres((await request.json()) as PassphraseRequestData)
 			const dataset = await (env as Env).SALA_STORE_BUCKET.get(requestData.data.language + '.json')
 			return generateAndRespond(requestData, dataset)
 		}
 
-		return new Response('Only GET and POST requests are allowed', {
+		return new Response(apiErrors.wrongMethod, {
 			status: 405,
 			headers: headers,
 		})
@@ -128,7 +110,7 @@ function extractSearchParams(url: URL): SimpleJsonRequestSchema {
 	const numbers = url.searchParams.get('numbers') === 'true'
 	const uppercase = url.searchParams.get('uppercase') === 'true'
 
-	return { language, passLength, words, numbers, randomChars, separator: separator, uppercase }
+	return { language, passLength, words, numbers, randomChars, separator, uppercase }
 }
 
 function mapRequestParametres(params: SimpleJsonRequestSchema): PassphraseRequestData {
