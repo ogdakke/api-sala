@@ -6,11 +6,12 @@ import {
 	headers,
 	minLengthForChars,
 } from './config'
+import { fetchFromR2Bucket } from './getR2'
 import { Env, Language, PassphraseRequestData, SimpleJsonRequestSchema } from './models'
 import { createPassphrase, validateSecret } from './services'
 
 const handler: ExportedHandler = {
-	async fetch(request: Request, env) {
+	async fetch(request: Request, env, context) {
 		/**
 		 * OPTIONS method for API
 		 */
@@ -55,8 +56,20 @@ const handler: ExportedHandler = {
 			const url = new URL(request.url)
 			const extractedParams = extractSearchParams(url)
 			const requestData = mapRequestParametres(extractedParams)
-			const dataset = await (env as Env).SALA_STORE_BUCKET.get(requestData.data.language + '.json')
-			return generateAndRespond(requestData, dataset)
+
+			const R2ObjectKey = requestData.data.language + '.json'
+
+			// const dataset = await (env as Env).SALA_STORE_BUCKET.get(requestData.data.language + '.json')
+			const dataset = await fetchFromR2Bucket({
+				request: request,
+				env: env as Env,
+				key: R2ObjectKey,
+				context,
+			})
+
+			const R2Object = dataset?.json()
+
+			return generateAndRespond(requestData, R2Object)
 		} else if (request.method === 'POST') {
 			const requestData = mapRequestParametres((await request.json()) as PassphraseRequestData)
 			const dataset = await (env as Env).SALA_STORE_BUCKET.get(requestData.data.language + '.json')
