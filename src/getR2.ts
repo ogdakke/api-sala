@@ -4,7 +4,7 @@ export type FetchAndCacheOptions = {
 	request: Request
 	key: string
 	env: Env
-	context: any
+	context: ExecutionContext
 }
 
 async function fetchAndCache({ request, key, env, context }: FetchAndCacheOptions): Promise<Response | null> {
