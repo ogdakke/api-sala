@@ -19,26 +19,34 @@ import { IndexableInputValue, PassLength } from '../models'
 export async function createPassphrase(
 	dataset: string[],
 	passLength: PassLength,
-	data: IndexableInputValue,
+	inputs: IndexableInputValue,
 ): Promise<string> {
-	const minLength = data.words.selected ? minLengthForWords : minLengthForChars
-	const maxLength = data.words.selected ? maxLengthForWords : maxLengthForChars
+	const minLength = inputs.words.selected ? minLengthForWords : minLengthForChars
+	const maxLength = inputs.words.selected ? maxLengthForWords : maxLengthForChars
 
-	const len = validateStringToBeValidNumber(passLength, minLength, maxLength)
+	const len = validateStringToBeValidNumber({ passLength, min: minLength, max: maxLength })
 
-	return handleReturns(len, data, dataset)
+	return handleReturns({ len, inputs, dataset })
 }
 
-function handleReturns(len: number, data: IndexableInputValue, dataset: string[]): string {
-	const { randomChars, words, uppercase } = data
+function handleReturns({
+	len,
+	inputs,
+	dataset,
+}: {
+	len: number
+	inputs: IndexableInputValue
+	dataset: string[]
+}): string {
+	const { randomChars, words, uppercase } = inputs
 	const USER_SPECIALS = randomChars.value || ''
 
 	const getFinalString = (wordString: string[] | null): string => {
 		if (wordString !== null) {
-			return handleWordsTrue(data, wordString, USER_SPECIALS)
+			return handleWordsTrue({ inputs, wordString, USER_SPECIALS })
 		}
 
-		return handleRandomCharStrings(data, len)
+		return handleRandomCharStrings({ inputs, len })
 	}
 
 	const applyUpperCase = (str: string): string => {
@@ -59,51 +67,59 @@ function handleReturns(len: number, data: IndexableInputValue, dataset: string[]
 	return applyUpperCase(finalString)
 }
 
-function handleWordsTrue(data: IndexableInputValue, wordString: string[], USER_SPECIALS: string): string {
-	if (data.randomChars.value != null) {
-		return applyTransformationsToWords(data, wordString).join(USER_SPECIALS)
+function handleWordsTrue({
+	inputs,
+	wordString,
+	USER_SPECIALS,
+}: {
+	inputs: IndexableInputValue
+	wordString: string[]
+	USER_SPECIALS: string
+}): string {
+	if (inputs.randomChars.value != null) {
+		return applyTransformationsToWords(inputs, wordString).join(USER_SPECIALS)
 	}
 
-	if (data.numbers.selected) {
+	if (inputs.numbers.selected) {
 		return addRandomNumberToString(wordString).join('').toString()
 	}
 
-	if (data.uppercase.selected) {
+	if (inputs.uppercase.selected) {
 		return capitalizeFirstLetter(wordString).join('')
 	}
 
 	return wordString.join('')
 }
 
-function applyTransformationsToWords(data: IndexableInputValue, wordString: string[]): string[] {
-	if (data.numbers.selected) {
-		if (data.uppercase.selected) {
+function applyTransformationsToWords(inputs: IndexableInputValue, wordString: string[]): string[] {
+	if (inputs.numbers.selected) {
+		if (inputs.uppercase.selected) {
 			return addRandomNumberToString(capitalizeFirstLetter(wordString))
 		}
 		return addRandomNumberToString(wordString)
 	}
 
-	if (data.uppercase.selected) {
+	if (inputs.uppercase.selected) {
 		return capitalizeFirstLetter(wordString)
 	}
 
 	return wordString
 }
 
-function handleRandomCharStrings(data: IndexableInputValue, len: number): string {
-	if (data.randomChars.selected && data.numbers.selected) {
+function handleRandomCharStrings({ inputs, len }: { inputs: IndexableInputValue; len: number }): string {
+	if (inputs.randomChars.selected && inputs.numbers.selected) {
 		return createFromString(specialsAndNums, len)
 	}
 
-	if (!data.numbers.selected && !data.randomChars.selected) {
+	if (!inputs.numbers.selected && !inputs.randomChars.selected) {
 		return createFromString(characters, len)
 	}
 
-	if (data.numbers.selected) {
+	if (inputs.numbers.selected) {
 		return createFromString(charsWithNumbers, len)
 	}
 
-	if (data.randomChars.selected) {
+	if (inputs.randomChars.selected) {
 		return createFromString(charactersAndSpecialCharacters, len)
 	}
 	throw new Error(generationErrors.noParametresFound)
@@ -113,7 +129,7 @@ function handleRandomCharStrings(data: IndexableInputValue, len: number): string
  * Creates a randomised string of characters from an input string
  */
 const createFromString = (stringToUse: string, len: number): string => {
-	const numArr = generateRandomArray(len, 0, stringToUse.length - 1)
+	const numArr = generateRandomArray({ len, min: 0, max: stringToUse.length - 1 })
 	const charArr = stringToUse.split('')
 
 	const stringArr: string[] = []
@@ -124,7 +140,15 @@ const createFromString = (stringToUse: string, len: number): string => {
 	return stringArr.join('')
 }
 
-const validateStringToBeValidNumber = (passLength: PassLength, min: number, max: number): number => {
+const validateStringToBeValidNumber = ({
+	passLength,
+	min,
+	max,
+}: {
+	passLength: PassLength
+	min: number
+	max: number
+}): number => {
 	const errors = validationErrorMessages(min, max)
 
 	if (typeof passLength !== 'string' && typeof passLength !== 'number') {
@@ -168,7 +192,7 @@ const toUppercase = (stringToUpper: string[] | string): string | string[] => {
 		const len = someStr.length
 		// so that there is always at least ONE char left lowercase
 		// (of course not possible if contains nums or specials...) we do "len - 1" for the arrays length
-		const arr = generateRandomArray(len - 1, 0, len)
+		const arr = generateRandomArray({ len: len - 1, min: 0, max: len })
 
 		const strArr = someStr.split('')
 		arr.forEach((i) => {
@@ -191,7 +215,7 @@ const toUppercase = (stringToUpper: string[] | string): string | string[] => {
 	return strArr
 }
 
-const isNumberRangeValid = (min: number, max: number) => min < max
+const isNumberRangeValid = ({ min, max }: { min: number; max: number }) => min < max
 
 const calculateRequestBytes = (range: number): number => {
 	return Math.ceil(Math.log2(range) / 8)
@@ -215,8 +239,8 @@ function generateRandomValueFromBytes(requestBytes: number): number {
 }
 
 // Generate a random integer  with equal chance in min <= r < max. courtesy of https://stackoverflow.com/questions/41437492/how-to-use-window-crypto-getrandomvalues-to-get-random-values-in-a-specific-rang
-function generateRandomNumberInRange(min: number, max: number): number {
-	if (!isNumberRangeValid(min, max)) {
+function generateRandomNumberInRange({ min, max }: { min: number; max: number }): number {
+	if (!isNumberRangeValid({ min, max })) {
 		throw new Error(`Max '${max}' must be larger than min: '${min}'`)
 	}
 
@@ -233,12 +257,12 @@ function generateRandomNumberInRange(min: number, max: number): number {
 }
 
 /**
- * generates an array of random numbers with length 'len'
+ * generates an array of random numbers between min and max, with length 'len'
  */
-function generateRandomArray(len: number, min: number, max: number): number[] {
+function generateRandomArray({ len, min, max }: { len: number; min: number; max: number }): number[] {
 	const arr = []
 	for (let i = 0; i < len; i++) {
-		arr.push(...[generateRandomNumberInRange(min, max)])
+		arr.push(...[generateRandomNumberInRange({ min, max })])
 	}
 	return arr
 }
@@ -257,12 +281,12 @@ function capitalizeFirstLetter(stringArrToConvert: string[] | undefined): string
 }
 
 /**
- * generates an array of length `len` randomly selected strings from stringDataset
+ * generates an array of length `length` from randomly selected strings in stringDataset
  */
 function getRandomWordsFromDataset(length: number, stringDataset: string[]): string[] {
 	const maxCount = stringDataset.length - 1 // the max word count in [language].json
 
-	const randomNumsArray = generateRandomArray(length, 0, maxCount)
+	const randomNumsArray = generateRandomArray({ len: length, min: 0, max: maxCount })
 
 	const sanaArray: string[] = []
 
@@ -286,8 +310,8 @@ const addRandomNumberToString = (stringArr: string[] | undefined): string[] => {
 		throw new Error(generationErrors.noStringArrayForAddingNumber)
 	}
 
-	const indexToSelect = generateRandomNumberInRange(0, stringArr.length)
-	const numToPadWith = generateRandomNumberInRange(0, 10).toString()
+	const indexToSelect = generateRandomNumberInRange({ min: 0, max: stringArr.length })
+	const numToPadWith = generateRandomNumberInRange({ min: 0, max: 10 }).toString()
 
 	const updatedArray = stringArr.map((str, i) => {
 		if (i === indexToSelect) {
