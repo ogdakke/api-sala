@@ -1,10 +1,11 @@
+
 import {
-	PRESHARED_AUTH_HEADER_KEY,
-	apiErrors,
-	defaultLengthOfPassphrase,
-	defaultResponse,
-	headers,
-	minLengthForChars,
+  PRESHARED_AUTH_HEADER_KEY,
+  apiErrors,
+  defaultLengthOfPassphrase,
+  defaultResponse,
+  headers,
+  minLengthForChars,
 } from './config'
 import { Env, Language, PassphraseRequestData, SimpleJsonRequestSchema } from './models'
 import { createPassphrase, validateSecret } from './services'
@@ -39,8 +40,11 @@ const handler: ExportedHandler = {
 		/**
 		 * If validation fails, eg. Keys do not match.
 		 */
-		if (!validateSecret(preSharedKey, apiKey)) {
-			return new Response(
+    const validation = validateSecret(preSharedKey, apiKey)
+		if (!validation.valid) {
+			console.log(validation.log);
+      
+      return new Response(
 				JSON.stringify({
 					error: apiErrors.notAuthorized,
 				}),

@@ -19,3 +19,13 @@ export interface SimpleJsonRequestSchema {
 	separator?: string | null
 	uppercase?: boolean | null
 }
+
+export type SecretParams = {
+  consumerSecret: string, 
+  suppliedSecret: string
+}
+
+export type SecretValidationResponse = {
+  log: any,
+  valid: boolean
+}
