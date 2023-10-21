@@ -9,17 +9,22 @@ export async function createPassphrase({
 	passLength,
 	inputs,
 }: {
-	dataset: string[]
+	dataset?: string[]
 	passLength: PassLength
 	inputs: IndexableInputValue
 }): Promise<string> {
 	const { minLengthForChars, maxLengthForChars, minLengthForWords, maxLengthForWords } = getConfig(inputs.language)
 	const minLength = inputs.words.selected ? minLengthForWords : minLengthForChars
 	const maxLength = inputs.words.selected ? maxLengthForWords : maxLengthForChars
-
 	const len = validateStringToBeValidNumber({ passLength, min: minLength, max: maxLength })
 
-	return handleReturns({ len, inputs, dataset })
+	const isUsingWords = inputs.words.selected
+
+	if (isUsingWords) {
+		return handleReturns({ len, inputs, dataset })
+	}
+
+	return handleReturns({ len, inputs })
 }
 
 function handleReturns({
@@ -29,17 +34,13 @@ function handleReturns({
 }: {
 	len: number
 	inputs: IndexableInputValue
-	dataset: string[]
+	dataset?: string[]
 }): string {
 	const { randomChars, words, uppercase } = inputs
 	const USER_SPECIALS = randomChars.value || ''
 
-	const getFinalString = (wordString: string[] | null): string => {
-		if (wordString !== null) {
-			return handleWordsTrue({ inputs, wordString, USER_SPECIALS })
-		}
-
-		return handleRandomCharStrings({ inputs, len })
+	const getFinalString = (wordString: string[]): string => {
+		return handleWordsTrue({ inputs, wordString, USER_SPECIALS })
 	}
 
 	const applyUpperCase = (str: string): string => {
@@ -53,10 +54,13 @@ function handleReturns({
 		return str
 	}
 
-	const wordString = words.selected ? getRandomWordsFromDataset(len, dataset) : null
+	if (!dataset) {
+		const randomCharString = handleRandomCharStrings({ inputs, len })
+		return applyUpperCase(randomCharString)
+	}
 
+	const wordString = getRandomWordsFromDataset(len, dataset)
 	const finalString = getFinalString(wordString)
-
 	return applyUpperCase(finalString)
 }
 

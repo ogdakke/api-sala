@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Handling case where words=false, to not load any dataset
+
 ## [1.1.0](https://github.com/ogdakke/api-sala/releases/1.1.0) - 21-10-2023
 
 ### Added
