@@ -1,6 +1,20 @@
-import { IndexableInputValue } from '../models'
+import { IndexableInputValue, Language } from '../models'
 
-export const validLanguages = ['fi', 'en']
+export function getConfig(language?: Language) {
+	const config = {
+		// Length restrictions
+		minLengthForChars: 4,
+		minLengthForWords: 1,
+		maxLengthForChars: 128,
+		maxLengthForWords: 28,
+		// Strings to generate from
+		generationStrings: getGenerationStrings(language),
+	}
+
+	return config
+}
+
+export const validLanguages: Language[] = ['fi', 'en']
 export const defaultLengthOfPassphrase = '3'
 
 export const defaultResponse: IndexableInputValue = {
@@ -20,16 +34,34 @@ export const defaultResponse: IndexableInputValue = {
 	},
 }
 
-export const minLengthForChars = 4
-export const minLengthForWords = 1
-export const maxLengthForChars = 128
-export const maxLengthForWords = 28
+const characters = {
+	fi: 'abcdefghijklmnopqrstuyäöxz',
+	en: 'abcdefghijklmnopqrstuyxz',
+}
+const numbers = '0123456789'
+const specials = '><,.-_*?+()@%&!$€=#'
 
-export const specialsAndNums = 'abcdefghijklmnopqrstuyäöxz1234567890><,.-_*?+()@%&!$€=#'
-export const charactersAndSpecialCharacters = 'abcdefghijklmnopqrstuyäöxz><,.-_*?+()@%&!$€=#'
-export const charsWithNumbers = 'abcdefghijklmnopqrstuyäöxz1234567890'
-export const characters = 'abcdefghijklmnopqrstuyäöxz'
-export const specials = '><,.-_*?+()@%&!$€=#'
+function getChars(Language?: Language) {
+	switch (Language) {
+		case 'en':
+			return characters.en
+		default:
+			return characters.fi
+	}
+}
+
+function getGenerationStrings(language?: Language) {
+	const characters = getChars(language)
+
+	return {
+		numbers: numbers,
+		characters: characters,
+		specials: specials,
+		specialsAndNums: `${characters}${numbers}${specials}`,
+		charactersAndSpecialCharacters: `${characters}${specials}`,
+		charsWithNumbers: `${characters}${numbers}`,
+	}
+}
 
 export const validationErrorMessages = (min: number, max: number) => {
 	const validationErrors = {

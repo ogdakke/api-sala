@@ -7,12 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- introduced `getConfig(language)` for support of different alphabets, now generating a randomChar password with languge: 'en' doesn't use the Finnish alphabet.
+
 ### Changed
 
 - update readme to reflect language option
 - Clean up generation code
 - Improve configs and imports
 - Allow only GET on R2
+- Error responses are better
+- Better handling of R2 dataset fetching failing.
 
 ## [1.0.2](https://github.com/ogdakke/api-sala/releases/1.0.2) - 12-10-2023
 

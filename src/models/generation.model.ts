@@ -15,4 +15,4 @@ export interface IndexableInputValue {
 	randomChars: InputValue
 }
 
-export type Language = 'fi' | 'en' | 'se'
+export type Language = 'fi' | 'en'

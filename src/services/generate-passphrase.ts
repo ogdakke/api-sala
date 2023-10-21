@@ -1,26 +1,19 @@
-import {
-	characters,
-	charactersAndSpecialCharacters,
-	charsWithNumbers,
-	generationErrors,
-	maxLengthForChars,
-	maxLengthForWords,
-	minLengthForChars,
-	minLengthForWords,
-	specialsAndNums,
-	validationErrorMessages,
-} from '../config'
-
+import { generationErrors, getConfig, validationErrorMessages } from '../config'
 import { IndexableInputValue, PassLength } from '../models'
 
 /**
  * Generates a passphrase/password based on supplied parametres
  */
-export async function createPassphrase(
-	dataset: string[],
-	passLength: PassLength,
-	inputs: IndexableInputValue,
-): Promise<string> {
+export async function createPassphrase({
+	dataset,
+	passLength,
+	inputs,
+}: {
+	dataset: string[]
+	passLength: PassLength
+	inputs: IndexableInputValue
+}): Promise<string> {
+	const { minLengthForChars, maxLengthForChars, minLengthForWords, maxLengthForWords } = getConfig(inputs.language)
 	const minLength = inputs.words.selected ? minLengthForWords : minLengthForChars
 	const maxLength = inputs.words.selected ? maxLengthForWords : maxLengthForChars
 
@@ -107,6 +100,10 @@ function applyTransformationsToWords(inputs: IndexableInputValue, wordString: st
 }
 
 function handleRandomCharStrings({ inputs, len }: { inputs: IndexableInputValue; len: number }): string {
+	const {
+		generationStrings: { specialsAndNums, characters, charsWithNumbers, charactersAndSpecialCharacters },
+	} = getConfig(inputs.language)
+
 	if (inputs.randomChars.selected && inputs.numbers.selected) {
 		return createFromString(specialsAndNums, len)
 	}

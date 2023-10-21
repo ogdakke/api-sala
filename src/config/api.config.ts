@@ -1,3 +1,5 @@
+import { validLanguages } from './generation.config'
+
 /**
  * Custom header key to check for apiKey
  */
@@ -16,6 +18,8 @@ const apiErrors = {
 	notAuthorized: 'Provided key is not authorized',
 	errorFetchingBucket: 'Failed to fetch word set',
 	wrongMethod: 'Only GET and POST requests are allowed',
+	languageParamIsNull: 'Language parameter was null',
+	languageIsNotSupported: `Language is not supported. Supported languages are: '${validLanguages}'`,
 }
 
 export { PRESHARED_AUTH_HEADER_KEY, apiErrors, headers }

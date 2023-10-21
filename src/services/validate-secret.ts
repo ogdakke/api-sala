@@ -1,8 +1,8 @@
 import { SecretParams, SecretValidationResponse } from '../models'
 
-export function validateSecret({ consumerSecret, suppliedSecret }: SecretParams): SecretValidationResponse {
+export function validateSecret({ consumerSecret, masterSecret }: SecretParams): SecretValidationResponse {
 	const consumerUINT = new TextEncoder().encode(consumerSecret)
-	const apiSecret = new TextEncoder().encode(suppliedSecret)
+	const apiSecret = new TextEncoder().encode(masterSecret)
 
 	if (consumerUINT.byteLength !== apiSecret.byteLength) {
 		return {

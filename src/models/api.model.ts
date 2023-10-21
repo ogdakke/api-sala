@@ -21,11 +21,11 @@ export interface SimpleJsonRequestSchema {
 }
 
 export type SecretParams = {
-  consumerSecret: string, 
-  suppliedSecret: string
+	consumerSecret: string
+	masterSecret: string
 }
 
 export type SecretValidationResponse = {
-  log: any,
-  valid: boolean
+	log: any
+	valid: boolean
 }

@@ -1,14 +1,15 @@
-
 import {
-  PRESHARED_AUTH_HEADER_KEY,
-  apiErrors,
-  defaultLengthOfPassphrase,
-  defaultResponse,
-  headers,
-  minLengthForChars,
+	PRESHARED_AUTH_HEADER_KEY,
+	apiErrors,
+	defaultLengthOfPassphrase,
+	defaultResponse,
+	getConfig,
+	headers,
+	validLanguages,
 } from './config'
 import { Env, Language, PassphraseRequestData, SimpleJsonRequestSchema } from './models'
 import { createPassphrase, validateSecret } from './services'
+import { isIncludedInArray } from './utils'
 
 const handler: ExportedHandler = {
 	async fetch(request: Request, env) {
@@ -28,9 +29,9 @@ const handler: ExportedHandler = {
 		/**
 		 * The user sent key, that will be compared with apiKey
 		 */
-		const preSharedKey = request.headers.get(PRESHARED_AUTH_HEADER_KEY)
+		const sentApiKey = request.headers.get(PRESHARED_AUTH_HEADER_KEY)
 
-		if (preSharedKey == null) {
+		if (sentApiKey == null) {
 			return new Response(JSON.stringify({ error: apiErrors.noAuthorizationKey }), {
 				status: 403,
 				headers: headers,
@@ -40,11 +41,14 @@ const handler: ExportedHandler = {
 		/**
 		 * If validation fails, eg. Keys do not match.
 		 */
-    const validation = validateSecret(preSharedKey, apiKey)
+		const validation = validateSecret({
+			consumerSecret: sentApiKey,
+			masterSecret: apiKey,
+		})
 		if (!validation.valid) {
-			console.log(validation.log);
-      
-      return new Response(
+			console.log(validation.log)
+
+			return new Response(
 				JSON.stringify({
 					error: apiErrors.notAuthorized,
 				}),
@@ -59,12 +63,30 @@ const handler: ExportedHandler = {
 			const url = new URL(request.url)
 			const extractedParams = extractSearchParams(url)
 			const requestData = mapRequestParametres(extractedParams)
-			const dataset = await (env as Env).SALA_STORE_BUCKET.get(requestData.data.language + '.json')
-			return generateAndRespond(requestData, dataset)
+			try {
+				const dataset = await getDataSet({ env: env as Env, requestData })
+				return generateAndRespond(requestData, dataset)
+			} catch (error) {
+				return new Response(apiErrors.errorFetchingBucket, {
+					status: 400,
+					headers: headers,
+				})
+			}
 		} else if (request.method === 'POST') {
 			const requestData = mapRequestParametres((await request.json()) as PassphraseRequestData)
-			const dataset = await (env as Env).SALA_STORE_BUCKET.get(requestData.data.language + '.json')
-			return generateAndRespond(requestData, dataset)
+			try {
+				const dataset = await getDataSet({ env: env as Env, requestData })
+				return generateAndRespond(requestData, dataset)
+			} catch (error) {
+				if (error instanceof Error) {
+					return new Response(
+						JSON.stringify({
+							error: error.message,
+						}),
+						{ status: 400, headers: headers },
+					)
+				}
+			}
 		}
 
 		return new Response(apiErrors.wrongMethod, {
@@ -74,6 +96,39 @@ const handler: ExportedHandler = {
 	},
 }
 
+async function getDataSet({ env, requestData }: { env: Env; requestData: PassphraseRequestData }) {
+	const start = performance.now()
+	const {
+		data: { language },
+	} = requestData
+
+	if (!isIncludedInArray({ value: language, arr: validLanguages })) {
+		throw new Error(apiErrors.languageIsNotSupported)
+	}
+	try {
+		const dataset = await env.SALA_STORE_BUCKET.get(requestData.data.language + '.json')
+
+		const end = performance.now()
+		console.log(
+			JSON.stringify({
+				message: 'Succeeded in fetching dataset',
+				time: end - start,
+			}),
+		)
+
+		return dataset
+	} catch (error) {
+		const end = performance.now()
+		console.error({
+			message: apiErrors.errorFetchingBucket,
+			requestData: JSON.stringify(requestData.data),
+			error: error,
+			time: end - start,
+		})
+		throw new Error(apiErrors.errorFetchingBucket)
+	}
+}
+
 async function generateAndRespond(requestData: PassphraseRequestData, bucket: R2ObjectBody | null): Promise<Response> {
 	const { passLength, data } = requestData
 	const dataset = await bucket?.json<string[]>()
@@ -81,7 +136,7 @@ async function generateAndRespond(requestData: PassphraseRequestData, bucket: R2
 		if (dataset == null) {
 			throw new Error(apiErrors.errorFetchingBucket)
 		}
-		const passphrase = await createPassphrase(dataset, passLength, data)
+		const passphrase = await createPassphrase({ dataset, passLength, inputs: data })
 		return new Response(
 			JSON.stringify({
 				passphrase: passphrase,
@@ -101,9 +156,6 @@ async function generateAndRespond(requestData: PassphraseRequestData, bucket: R2
 
 /**
  * extract all needed params from the url
- * @param url url to extract from
- * @returns passlength
- * @returns data
  */
 function extractSearchParams(url: URL): SimpleJsonRequestSchema {
 	const language = url.searchParams.get('lang') as Language
@@ -118,7 +170,17 @@ function extractSearchParams(url: URL): SimpleJsonRequestSchema {
 }
 
 function mapRequestParametres(params: SimpleJsonRequestSchema): PassphraseRequestData {
-	const { language, passLength, words, numbers, randomChars, separator: separator, uppercase } = params
+	const { language, passLength, words, numbers, randomChars, separator, uppercase } = params
+	if (!language) {
+		console.log({
+			message: apiErrors.languageParamIsNull,
+			params: params,
+		})
+
+		throw new Error(apiErrors.languageParamIsNull)
+	}
+
+	const { minLengthForChars } = getConfig(language)
 
 	return {
 		passLength:

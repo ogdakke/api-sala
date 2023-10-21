@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-	maxLengthForChars,
-	maxLengthForWords,
-	minLengthForChars,
-	minLengthForWords,
-	validationErrorMessages,
-} from '../../config'
+import { getConfig, validationErrorMessages } from '../../config'
 import { IndexableInputValue, Language } from '../../models'
 import { createPassphrase } from '../generate-passphrase'
 
@@ -26,13 +20,14 @@ const defaultConfig: TestConfig = {
 	uppercaseCharacters: false,
 	inputFieldValueFromUser: '-',
 }
-
+const config = getConfig(defaultConfig.language)
+const { minLengthForChars, maxLengthForChars, minLengthForWords, maxLengthForWords } = config
 let variableMinLength = minLengthForChars
 let variableMaxLength = maxLengthForChars
-const testData = (config: TestConfig = {}): IndexableInputValue => {
+const testData = (testConfig: TestConfig = {}): IndexableInputValue => {
 	const { language, word, randomCharactersInString, numbers, uppercaseCharacters, inputFieldValueFromUser } = {
 		...defaultConfig,
-		...config,
+		...testConfig,
 	} // Merge default values with provided ones
 
 	variableMinLength = word ? minLengthForWords : minLengthForChars
