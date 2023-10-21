@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { getConfig, validationErrorMessages } from '../../config'
 import { IndexableInputValue, Language } from '../../models'
 import { createPassphrase } from '../generate-passphrase'
-const dataset = await import('../../../assets/fi.json')
+const dataset = (await import('../../../assets/fi.json')).default
 
 type TestConfig = {
 	language?: Language
@@ -57,49 +57,57 @@ const testLang = testData().language
 const errors = validationErrorMessages(variableMinLength, variableMaxLength)
 describe('createPassphrase() creates a random string with correct length', () => {
 	it('should return a string with correct length', async () => {
+		expect(await createPassphrase({ dataset, passLength: 10, inputs: testData() })).toHaveLength(10)
+		expect(await createPassphrase({ dataset, passLength: '10', inputs: testData({ numbers: true }) })).toHaveLength(10)
+		expect(
+			await createPassphrase({ dataset, passLength: '10', inputs: testData({ randomCharactersInString: true }) }),
+		).toHaveLength(10)
+
+		/**weird values, but they are number */
+		expect(await createPassphrase({ dataset, passLength: '007A', inputs: testData() })).toHaveLength(7)
 		expect(
 			await createPassphrase({
 				dataset,
-				passLength: 10,
-				inputs: testData(),
+				passLength: '012whaaat??? its not weird at all that this is valid',
+				inputs: testData({ numbers: true }),
 			}),
-		).toHaveLength(10)
-		expect(await createPassphrase(testLang, '10', testData({ numbers: true }))).toHaveLength(10)
-		expect(await createPassphrase(testLang, '10', testData({ randomCharactersInString: true }))).toHaveLength(10)
-
-		/**weird values, but they are number */
-		expect(await createPassphrase(testLang, '007A', testData())).toHaveLength(7)
-		expect(await createPassphrase(testLang, '000012Bklafkflask what???', testData())).toHaveLength(12)
-		expect(await createPassphrase(testLang, '10.5', testData())).toHaveLength(10)
+		).toHaveLength(12)
+		expect(await createPassphrase({ dataset, passLength: '10.5', inputs: testData() })).toHaveLength(10)
 	})
 
 	it('should return a string with length maxLengthForChars', async () => {
-		expect(await createPassphrase(testLang, maxLengthForChars.toString(), testData())).toHaveLength(maxLengthForChars)
+		expect(await createPassphrase({ dataset, passLength: maxLengthForChars, inputs: testData({}) })).toHaveLength(
+			maxLengthForChars,
+		)
 	})
 
 	it('should throw errors on a string with weird values', async () => {
 		/** Testing parsing of strings */
-		await expect(async () => await createPassphrase(testLang, 'huh', testData())).rejects.toThrowError(
-			errors.notNumericStringOrNumber,
-		)
+		await expect(
+			async () => await createPassphrase({ dataset, passLength: 'huh?', inputs: testData({}) }),
+		).rejects.toThrowError(errors.notNumericStringOrNumber)
 
-		await expect(async () => await createPassphrase(testLang, '-1', testData())).rejects.toThrowError(
-			errors.smallerThanOne,
-		)
-		await expect(async () => await createPassphrase(testLang, '1200', testData())).rejects.toThrowError(errors.tooLong)
+		await expect(
+			async () => await createPassphrase({ dataset, passLength: '-1', inputs: testData({}) }),
+		).rejects.toThrowError(errors.smallerThanOne)
+		await expect(
+			async () => await createPassphrase({ dataset, passLength: '1200', inputs: testData({}) }),
+		).rejects.toThrowError(errors.tooLong)
 
-		await expect(async () => await createPassphrase(testLang, '3', testData())).rejects.toThrowError(errors.tooShort)
+		await expect(
+			async () => await createPassphrase({ dataset, passLength: '3', inputs: testData({}) }),
+		).rejects.toThrowError(errors.tooShort)
 
 		/** Testing Numbers */
-		await expect(async () => await createPassphrase(testLang, -1, testData())).rejects.toThrowError(
-			errors.smallerThanOne,
-		)
-		await expect(async () => await createPassphrase(testLang, Infinity, testData())).rejects.toThrowError(
-			errors.tooLong,
-		)
-		await expect(async () => await createPassphrase(testLang, NaN, testData())).rejects.toThrowError(
-			errors.notNumericStringOrNumber,
-		)
+		await expect(
+			async () => await createPassphrase({ dataset, passLength: -1, inputs: testData({}) }),
+		).rejects.toThrowError(errors.smallerThanOne)
+		await expect(
+			async () => await createPassphrase({ dataset, passLength: Infinity, inputs: testData({}) }),
+		).rejects.toThrowError(errors.tooLong)
+		await expect(
+			async () => await createPassphrase({ dataset, passLength: NaN, inputs: testData({}) }),
+		).rejects.toThrowError(errors.notNumericStringOrNumber)
 	})
 })
 
@@ -111,7 +119,7 @@ describe('Generated string includes certain characters based on user input', () 
 		expect(regExp.test('12jkasfäööä34')).toStrictEqual(false)
 		expect(regExp.test('12jkasfä€öö.ä34_*')).toStrictEqual(false)
 
-		expect(await createPassphrase(testLang, '10', testData())).toMatch(regExp)
+		expect(await createPassphrase({ dataset, passLength: '10', inputs: testData({}) })).toMatch(regExp)
 	})
 
 	it('Should include at least one uppercase character', async () => {
@@ -121,8 +129,12 @@ describe('Generated string includes certain characters based on user input', () 
 		expect(regExp.test('12jkasfäööä34')).toStrictEqual(false)
 		expect(regExp.test('12jkasfä€öö.ä34_*')).toStrictEqual(false)
 
-		expect(await createPassphrase(testLang, '10', testData({ uppercaseCharacters: true }))).toMatch(regExp)
-		expect(await createPassphrase(testLang, '3', testData({ word: true, uppercaseCharacters: true }))).toMatch(regExp)
+		expect(
+			await createPassphrase({ dataset, passLength: '10', inputs: testData({ uppercaseCharacters: true }) }),
+		).toMatch(regExp)
+		expect(
+			await createPassphrase({ dataset, passLength: '10', inputs: testData({ uppercaseCharacters: true }) }),
+		).toMatch(regExp)
 	})
 
 	it('Should include atleast one number', async () => {
@@ -132,8 +144,10 @@ describe('Generated string includes certain characters based on user input', () 
 		expect(regExp.test('tämäontesti')).toStrictEqual(false)
 		expect(regExp.test('tämä*ontes-ti')).toStrictEqual(false)
 
-		expect(await createPassphrase(testLang, '30', testData({ numbers: true }))).toMatch(regExp)
-		expect(await createPassphrase(testLang, '4', testData({ word: true, numbers: true }))).toMatch(regExp)
+		expect(await createPassphrase({ dataset, passLength: '30', inputs: testData({ numbers: true }) })).toMatch(regExp)
+		expect(
+			await createPassphrase({ dataset, passLength: '4', inputs: testData({ word: true, numbers: true }) }),
+		).toMatch(regExp)
 	})
 
 	it('Should include specials', async () => {
@@ -144,7 +158,9 @@ describe('Generated string includes certain characters based on user input', () 
 		expect(regExp.test('thisisates2tstri4ng')).toStrictEqual(false)
 		expect(regExp.test('tämäontesti')).toStrictEqual(false)
 
-		expect(await createPassphrase(testLang, '30', testData({ randomCharactersInString: true }))).toMatch(regExp)
+		expect(
+			await createPassphrase({ dataset, passLength: '30', inputs: testData({ randomCharactersInString: true }) }),
+		).toMatch(regExp)
 	})
 
 	it('Should include numbers and specials', async () => {
@@ -157,13 +173,21 @@ describe('Generated string includes certain characters based on user input', () 
 		expect(regExp.test('tämäon_testi')).toStrictEqual(false)
 
 		// Characters
-		expect(await createPassphrase(testLang, '30', testData({ randomCharactersInString: true, numbers: true }))).toMatch(
-			regExp,
-		)
+		expect(
+			await createPassphrase({
+				dataset,
+				passLength: '30',
+				inputs: testData({ randomCharactersInString: true, numbers: true }),
+			}),
+		).toMatch(regExp)
 
 		// Words
 		expect(
-			await createPassphrase(testLang, '5', testData({ word: true, randomCharactersInString: true, numbers: true })),
+			await createPassphrase({
+				dataset,
+				passLength: '5',
+				inputs: testData({ word: true, randomCharactersInString: true, numbers: true }),
+			}),
 		).toMatch(regExp)
 	})
 })
@@ -177,14 +201,14 @@ describe('Generated string includes certain characters based on user input', () 
 describe('Generated passphrase is valid', () => {
 	it('Should have correct amount of words', async () => {
 		const splitter = '-'
-		const passphrase = await createPassphrase(
-			testLang,
-			'2',
-			testData({
+		const passphrase = await createPassphrase({
+			dataset,
+			passLength: '2',
+			inputs: testData({
 				word: true,
 				inputFieldValueFromUser: splitter,
 			}),
-		)
+		})
 		expect(passphrase).toContain(splitter)
 
 		const splitStringArr = passphrase.split(splitter)
@@ -194,14 +218,14 @@ describe('Generated passphrase is valid', () => {
 	it('Should have correct amount of splitter characters', async () => {
 		const splitter = '?'
 		const regExp = /[?]/g
-		const passphrase = await createPassphrase(
-			testLang,
-			'3',
-			testData({
+		const passphrase = await createPassphrase({
+			dataset,
+			passLength: '3',
+			inputs: testData({
 				word: true,
 				inputFieldValueFromUser: splitter,
 			}),
-		)
+		})
 		expect(passphrase).toContain(splitter)
 
 		const splitterArr = passphrase.match(regExp)

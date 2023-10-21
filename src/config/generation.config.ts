@@ -71,6 +71,7 @@ export const validationErrorMessages = (min: number, max: number) => {
 		smallerThanOne: 'Length must be a positive number larger than 0',
 		tooLong: `Length must not exceed ${max}`,
 		tooShort: `Length cannot be smaller than ${min}`,
+		notValidRange: `Max '${max}' must be larger than min: '${min}'`,
 	}
 	return validationErrors
 }

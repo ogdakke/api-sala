@@ -237,8 +237,10 @@ function generateRandomValueFromBytes(requestBytes: number): number {
 
 // Generate a random integer  with equal chance in min <= r < max. courtesy of https://stackoverflow.com/questions/41437492/how-to-use-window-crypto-getrandomvalues-to-get-random-values-in-a-specific-rang
 function generateRandomNumberInRange({ min, max }: { min: number; max: number }): number {
+	const { notValidRange } = validationErrorMessages(min, max)
+
 	if (!isNumberRangeValid({ min, max })) {
-		throw new Error(`Max '${max}' must be larger than min: '${min}'`)
+		throw new Error(notValidRange)
 	}
 
 	const range = max - min
