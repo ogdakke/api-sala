@@ -26,6 +26,6 @@ export type SecretParams = {
 }
 
 export type SecretValidationResponse = {
-	log: any
+	log: string
 	valid: boolean
 }

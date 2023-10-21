@@ -62,15 +62,22 @@ const handler: ExportedHandler = {
 		if (request.method === 'GET') {
 			const url = new URL(request.url)
 			const extractedParams = extractSearchParams(url)
-			const requestData = mapRequestParametres(extractedParams)
 			try {
+				const requestData = mapRequestParametres(extractedParams)
 				const dataset = await getDataSet({ env: env as Env, requestData })
 				return generateAndRespond(requestData, dataset)
 			} catch (error) {
-				return new Response(apiErrors.errorFetchingBucket, {
-					status: 400,
-					headers: headers,
-				})
+				if (error instanceof Error) {
+					return new Response(
+						JSON.stringify({
+							error: error.message,
+						}),
+						{
+							status: 400,
+							headers: headers,
+						},
+					)
+				}
 			}
 		} else if (request.method === 'POST') {
 			const requestData = mapRequestParametres((await request.json()) as PassphraseRequestData)
@@ -83,7 +90,10 @@ const handler: ExportedHandler = {
 						JSON.stringify({
 							error: error.message,
 						}),
-						{ status: 400, headers: headers },
+						{
+							status: 400,
+							headers: headers,
+						},
 					)
 				}
 			}
@@ -145,7 +155,7 @@ async function generateAndRespond(requestData: PassphraseRequestData, bucket: R2
 			{ status: 200, headers: headers },
 		)
 	} catch (error) {
-		console.error(error)
+		console.error({ error: error })
 		if (error instanceof Error) {
 			return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: headers })
 		}
@@ -171,6 +181,7 @@ function extractSearchParams(url: URL): SimpleJsonRequestSchema {
 
 function mapRequestParametres(params: SimpleJsonRequestSchema): PassphraseRequestData {
 	const { language, passLength, words, numbers, randomChars, separator, uppercase } = params
+
 	if (!language) {
 		console.log({
 			message: apiErrors.languageParamIsNull,
@@ -178,6 +189,15 @@ function mapRequestParametres(params: SimpleJsonRequestSchema): PassphraseReques
 		})
 
 		throw new Error(apiErrors.languageParamIsNull)
+	}
+
+	if (!isIncludedInArray({ value: language, arr: validLanguages })) {
+		console.log({
+			message: apiErrors.languageIsNotSupported,
+			params: params,
+		})
+
+		throw new Error(apiErrors.languageIsNotSupported)
 	}
 
 	const { minLengthForChars } = getConfig(language)
