@@ -53,7 +53,7 @@ const testData = (testConfig: TestConfig = {}): IndexableInputValue => {
 		},
 	}
 }
-const testLang = testData().language
+
 const errors = validationErrorMessages(variableMinLength, variableMaxLength)
 describe('createPassphrase() creates a random string with correct length', () => {
 	it('should return a string with correct length', async () => {
@@ -73,6 +73,20 @@ describe('createPassphrase() creates a random string with correct length', () =>
 			}),
 		).toHaveLength(12)
 		expect(await createPassphrase({ dataset, passLength: '10.5', inputs: testData() })).toHaveLength(10)
+	})
+
+	it('should return a random string even if no dataset supplied', async () => {
+		expect(await createPassphrase({ passLength: 32, inputs: testData({}) })).toHaveLength(32)
+	})
+
+	it('should reject invalid values even if no dataset supplied', async () => {
+		await expect(
+			async () => await createPassphrase({ passLength: 400, inputs: testData({ word: false }) }),
+		).rejects.toThrow(errors.tooLong)
+
+		await expect(async () => await createPassphrase({ passLength: 'huh?', inputs: testData({}) })).rejects.toThrowError(
+			errors.notNumericStringOrNumber,
+		)
 	})
 
 	it('should return a string with length maxLengthForChars', async () => {

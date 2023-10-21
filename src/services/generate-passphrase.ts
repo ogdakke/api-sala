@@ -14,13 +14,13 @@ export async function createPassphrase({
 	inputs: IndexableInputValue
 }): Promise<string> {
 	const { minLengthForChars, maxLengthForChars, minLengthForWords, maxLengthForWords } = getConfig(inputs.language)
-	const minLength = inputs.words.selected ? minLengthForWords : minLengthForChars
-	const maxLength = inputs.words.selected ? maxLengthForWords : maxLengthForChars
-	const len = validateStringToBeValidNumber({ passLength, min: minLength, max: maxLength })
-
 	const isUsingWords = inputs.words.selected
 
-	if (isUsingWords) {
+	const minLength = isUsingWords ? minLengthForWords : minLengthForChars
+	const maxLength = isUsingWords ? maxLengthForWords : maxLengthForChars
+	const len = validateStringToBeValidNumber({ passLength, min: minLength, max: maxLength })
+
+	if (isUsingWords && dataset) {
 		return handleReturns({ len, inputs, dataset })
 	}
 
