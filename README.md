@@ -6,6 +6,12 @@ Now in either Finnish or English
 
 ## API Specification
 
+### Headers
+
+`X-API-KEY`: string
+
+### Parametres
+
 `"key": type`
 
 ```typescript
