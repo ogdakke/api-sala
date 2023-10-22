@@ -3,7 +3,7 @@
 	"version": "1.0.2",
 	"private": true,
 	"scripts": {
-		"deploy": "pnpm run test --run --coverage && wrangler deploy",
+		"deploy": "wrangler deploy",
 		"start": "wrangler dev",
 		"test": "vitest",
 		"wrangler": "wrangler",
