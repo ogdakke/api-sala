@@ -64,8 +64,9 @@ const handler: ExportedHandler = {
 			const extractedParams = extractSearchParams(url)
 			try {
 				const requestData = mapRequestParametres(extractedParams)
-				const dataset = await getDataSet({ env: env as Env, requestData })
-				return generateAndRespond(requestData, dataset)
+
+				const isUsingWords = requestData.data.words.selected
+				return handleLoadingOfDataset({ isUsingWords, env: env as Env, requestData })
 			} catch (error) {
 				if (error instanceof Error) {
 					return new Response(
@@ -82,8 +83,8 @@ const handler: ExportedHandler = {
 		} else if (request.method === 'POST') {
 			const requestData = mapRequestParametres((await request.json()) as PassphraseRequestData)
 			try {
-				const dataset = await getDataSet({ env: env as Env, requestData })
-				return generateAndRespond(requestData, dataset)
+				const isUsingWords = requestData.data.words.selected
+				return handleLoadingOfDataset({ isUsingWords, env: env as Env, requestData })
 			} catch (error) {
 				if (error instanceof Error) {
 					return new Response(
@@ -104,6 +105,22 @@ const handler: ExportedHandler = {
 			headers: headers,
 		})
 	},
+}
+
+async function handleLoadingOfDataset({
+	isUsingWords,
+	env,
+	requestData,
+}: {
+	isUsingWords: boolean
+	env: Env
+	requestData: PassphraseRequestData
+}) {
+	if (isUsingWords) {
+		const dataset = await getDataSet({ env: env as Env, requestData })
+		return generateAndRespond(requestData, dataset)
+	}
+	return generateAndRespond(requestData)
 }
 
 async function getDataSet({ env, requestData }: { env: Env; requestData: PassphraseRequestData }) {
@@ -139,8 +156,30 @@ async function getDataSet({ env, requestData }: { env: Env; requestData: Passphr
 	}
 }
 
-async function generateAndRespond(requestData: PassphraseRequestData, bucket: R2ObjectBody | null): Promise<Response> {
+async function generateAndRespond(requestData: PassphraseRequestData, bucket?: R2ObjectBody | null): Promise<Response> {
 	const { passLength, data } = requestData
+
+	// If no bucket is supplied, eg. words are not being used
+	if (bucket === undefined) {
+		try {
+			const password = await createPassphrase({ passLength, inputs: data })
+
+			return new Response(
+				JSON.stringify({
+					passphrase: password,
+					passLength: password.length,
+				}),
+				{ status: 200, headers: headers },
+			)
+		} catch (error) {
+			console.error({ error: error })
+			if (error instanceof Error) {
+				return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: headers })
+			}
+		}
+	}
+	// A bucket was supplied
+	// It might be null due to some other issue, but it's not undefined
 	const dataset = await bucket?.json<string[]>()
 	try {
 		if (dataset == null) {
