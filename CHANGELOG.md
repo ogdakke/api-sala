@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.1.2](https://github.com/ogdakke/api-sala/releases/1.1.2) - 25-12-2023
+
+### Changed
+
+- Update dependencies
+
 ## [1.1.1](https://github.com/ogdakke/api-sala/releases/1.1.1) - 22-10-2023
 
 ### Changed
