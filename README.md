@@ -45,15 +45,3 @@ separator: string
 // default: true
 numbers: boolean
 ```
-
-## Development setup
-
-```sh
-pnpm i
-```
-
-```sh
-pnpm start
-```
-
-Add your api key to the root `.dev.vars` -file
