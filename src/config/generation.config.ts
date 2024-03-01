@@ -14,7 +14,7 @@ export function getConfig(language?: Language) {
 	return config
 }
 
-export const validLanguages: Language[] = ['fi', 'en']
+export const validLanguages: Language[] = ['fi', 'en'] as const
 export const defaultLengthOfPassphrase = '3'
 
 export const defaultResponse: IndexableInputValue = {

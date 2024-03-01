@@ -18,7 +18,7 @@ const handler: ExportedHandler = {
 		 */
 		if (request.method === 'OPTIONS') {
 			// Respond to the preflight request with the appropriate headers
-			return new Response(null, { status: 200, headers: headers })
+			return new Response(null, { status: 200, headers })
 		}
 
 		/**
@@ -31,7 +31,7 @@ const handler: ExportedHandler = {
 		 */
 		const sentApiKey = request.headers.get(PRESHARED_AUTH_HEADER_KEY)
 
-		if (sentApiKey == null) {
+		if (sentApiKey === null) {
 			return new Response(JSON.stringify({ error: apiErrors.noAuthorizationKey }), {
 				status: 403,
 				headers: headers,
@@ -61,6 +61,29 @@ const handler: ExportedHandler = {
 		 */
 		if (request.method === 'GET') {
 			const url = new URL(request.url)
+			// Check if the request is for the dataset
+			if (url.pathname.startsWith('/dataset/')) {
+				const language = url.pathname.split('/')[2] as Language
+
+				if (!validLanguages.includes(language)) {
+					throw new Error(apiErrors.languageIsNotSupported)
+				}
+				try {
+					const dataset = await (env as Env).SALA_STORE_BUCKET.get(`${language}.json`)
+					if (!dataset) {
+						return new Response(apiErrors.errorFetchingBucket, { status: 404, headers })
+					}
+					console.log('size:', dataset.size) // TODO
+
+					return new Response(dataset.body, {
+						headers: { 'Content-Length': dataset.size.toString(), ...headers },
+					})
+				} catch (error) {
+					return new Response(apiErrors.errorFetchingBucket, { status: 500, headers })
+				}
+			}
+
+			// Else continue with generating passphase
 			const extractedParams = extractSearchParams(url)
 			try {
 				const requestData = mapRequestParametres(extractedParams)

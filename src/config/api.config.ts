@@ -9,9 +9,9 @@ const headers = {
 	'Content-Type': 'application/json',
 	'Access-Control-Allow-Origin': '*',
 	'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-	'Access-Control-Allow-Headers': `${PRESHARED_AUTH_HEADER_KEY}`,
+	'Access-Control-Allow-Headers': `${PRESHARED_AUTH_HEADER_KEY}, Content-Type`,
 	'Cache-Control': 'no-cache, no-store, must-revalidate',
-}
+} as const
 
 const apiErrors = {
 	noAuthorizationKey: 'No authorization key found',

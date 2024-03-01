@@ -45,3 +45,11 @@ separator: string
 // default: true
 numbers: boolean
 ```
+
+### Dataset endpoint
+
+```typescript
+// /dataset endpoint returns json in the shape of string[]
+// available datasets: 'en', 'fi'
+// `/dataset/${lang}`
+```

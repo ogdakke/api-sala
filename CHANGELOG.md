@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.2.0](https://github.com/ogdakke/api-sala/releases/1.2.0) - 01-03-2024
+
+- Add endpoint `/dataset/<language>` for loading generation datasets dynamically in applications
+
 ## [1.1.2](https://github.com/ogdakke/api-sala/releases/1.1.2) - 25-12-2023
 
 ### Changed

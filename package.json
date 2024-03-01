@@ -1,10 +1,11 @@
 {
 	"name": "api-sala",
-	"version": "1.1.2",
+	"version": "1.2.0",
 	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy",
 		"start": "wrangler dev",
+		"start:remote": "wrangler dev --remote",
 		"test": "vitest",
 		"wrangler": "wrangler",
 		"prettier": "prettier src/ --write",
