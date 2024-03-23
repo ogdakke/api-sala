@@ -27,35 +27,38 @@ const handler: ExportedHandler = {
 		const apiKey = (env as Env)[PRESHARED_AUTH_HEADER_KEY]
 
 		/**
-		 * The user sent key, that will be compared with apiKey
+		 * The user sent key, that will be compared with apiKey if the origin is correct
 		 */
 		const sentApiKey = request.headers.get(PRESHARED_AUTH_HEADER_KEY)
-
-		if (sentApiKey === null) {
+    const origin = request.headers.get('Origin')
+    
+		if (sentApiKey === null && origin !== (env as Env).APP_URL) {
 			return new Response(JSON.stringify({ error: apiErrors.noAuthorizationKey }), {
 				status: 403,
 				headers: headers,
 			})
 		}
 
-		/**
-		 * If validation fails, eg. Keys do not match.
-		 */
+    if (sentApiKey && origin !== (env as Env).APP_URL) {
+      /**
+       * If validation fails, eg. Keys do not match.
+      */
 		const validation = validateSecret({
-			consumerSecret: sentApiKey,
+      consumerSecret: sentApiKey,
 			masterSecret: apiKey,
 		})
 		if (!validation.valid) {
-			console.log(validation.log)
-
+      console.log(validation.log)
+      
 			return new Response(
-				JSON.stringify({
-					error: apiErrors.notAuthorized,
+        JSON.stringify({
+          error: apiErrors.notAuthorized,
 				}),
 				{ status: 401, headers: headers },
-			)
-		}
-
+        )
+      }
+    }
+      
 		/**
 		 * GET, POST methods for API
 		 */
@@ -73,13 +76,18 @@ const handler: ExportedHandler = {
 					if (!dataset) {
 						return new Response(apiErrors.errorFetchingBucket, { status: 404, headers })
 					}
-					console.log('size:', dataset.size) // TODO
 
 					return new Response(dataset.body, {
-						headers: { 'Content-Length': dataset.size.toString(), ...headers },
+						headers: {
+							...headers,
+							'Content-Length': dataset.size.toString(),
+							'Cache-Control': 'max-age=31536000',
+						},
 					})
 				} catch (error) {
-					return new Response(apiErrors.errorFetchingBucket, { status: 500, headers })
+					return new Response(apiErrors.errorFetchingBucket, { status: 500,
+						headers,
+					})
 				}
 			}
 
@@ -89,7 +97,11 @@ const handler: ExportedHandler = {
 				const requestData = mapRequestParametres(extractedParams)
 
 				const isUsingWords = requestData.data.words.selected
-				return handleLoadingOfDataset({ isUsingWords, env: env as Env, requestData })
+				return handleLoadingOfDataset({
+					isUsingWords,
+					env: env as Env,
+					requestData,
+				})
 			} catch (error) {
 				if (error instanceof Error) {
 					return new Response(
@@ -107,7 +119,11 @@ const handler: ExportedHandler = {
 			const requestData = mapRequestParametres((await request.json()) as PassphraseRequestData)
 			try {
 				const isUsingWords = requestData.data.words.selected
-				return handleLoadingOfDataset({ isUsingWords, env: env as Env, requestData })
+				return handleLoadingOfDataset({
+					isUsingWords,
+					env: env as Env,
+					requestData,
+				})
 			} catch (error) {
 				if (error instanceof Error) {
 					return new Response(
@@ -197,7 +213,10 @@ async function generateAndRespond(requestData: PassphraseRequestData, bucket?: R
 		} catch (error) {
 			console.error({ error: error })
 			if (error instanceof Error) {
-				return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: headers })
+				return new Response(JSON.stringify({ error: error.message }), {
+					status: 400,
+					headers: headers,
+				})
 			}
 		}
 	}
@@ -208,7 +227,11 @@ async function generateAndRespond(requestData: PassphraseRequestData, bucket?: R
 		if (dataset == null) {
 			throw new Error(apiErrors.errorFetchingBucket)
 		}
-		const passphrase = await createPassphrase({ dataset, passLength, inputs: data })
+		const passphrase = await createPassphrase({
+			dataset,
+			passLength,
+			inputs: data,
+		})
 		return new Response(
 			JSON.stringify({
 				passphrase: passphrase,
@@ -219,11 +242,17 @@ async function generateAndRespond(requestData: PassphraseRequestData, bucket?: R
 	} catch (error) {
 		console.error({ error: error })
 		if (error instanceof Error) {
-			return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: headers })
+			return new Response(JSON.stringify({ error: error.message }), {
+				status: 400,
+				headers: headers,
+			})
 		}
 	}
 	// Ideally, this shouldn't be reached.
-	return new Response('Unexpected server error', { status: 500, headers: headers })
+	return new Response('Unexpected server error', {
+		status: 500,
+		headers: headers,
+	})
 }
 
 /**
@@ -238,7 +267,15 @@ function extractSearchParams(url: URL): SimpleJsonRequestSchema {
 	const numbers = url.searchParams.get('numbers') === 'true'
 	const uppercase = url.searchParams.get('uppercase') === 'true'
 
-	return { language, passLength, words, numbers, randomChars, separator, uppercase }
+	return {
+		language,
+		passLength,
+		words,
+		numbers,
+		randomChars,
+		separator,
+		uppercase,
+	}
 }
 
 function mapRequestParametres(params: SimpleJsonRequestSchema): PassphraseRequestData {

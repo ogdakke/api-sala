@@ -4,12 +4,16 @@ compatibility_date = "2023-08-21"
 compatibility_flags = ["nodejs_compat"]
 
 account_id = "21d89c6498aeb4c017e2d89fbb6ba4cd"
+
 # node_compat = true
 # Variable bindings. These are arbitrary, plaintext strings (similar to environment variables)
 # Note: Use secrets to store sensitive data.
 # Docs: https://developers.cloudflare.com/workers/platform/environment-variables
-# [vars]
-# MY_VARIABLE = "production_value"
+[vars]
+APP_URL = "https://salasanakone.com"
+
+[env.dev.vars]
+APP_URL = "http://localhost:5173"
 
 # Bind a KV Namespace. Use KV as persistent storage for small key-value pairs.
 # Docs: https://developers.cloudflare.com/workers/runtime-apis/kv
@@ -22,6 +26,11 @@ account_id = "21d89c6498aeb4c017e2d89fbb6ba4cd"
 [[r2_buckets]]
 binding = "SALA_STORE_BUCKET"
 bucket_name = "sala-store"
+preview_bucket_name = "dev-sala-store"
+
+[[env.dev.r2_buckets]]
+binding = "SALA_STORE_BUCKET"
+bucket_name = "dev-sala-store"
 preview_bucket_name = "dev-sala-store"
 
 # Bind a Queue producer. Use this binding to schedule an arbitrary task that may be processed later by a Queue consumer.
