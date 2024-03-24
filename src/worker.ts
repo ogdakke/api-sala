@@ -30,35 +30,55 @@ const handler: ExportedHandler = {
 		 * The user sent key, that will be compared with apiKey if the origin is correct
 		 */
 		const sentApiKey = request.headers.get(PRESHARED_AUTH_HEADER_KEY)
-    const origin = request.headers.get('Origin')
-    
-		if (sentApiKey === null && origin !== (env as Env).APP_URL) {
+		const url = new URL(request.headers.get('Origin') ?? '')
+		const urlTest = /^(salasanakone\.com|.+\.salasanakone\.pages\.dev)$/
+
+		/** Check the env vars against the request host
+		 * eg. "localhost:5173" */
+		const isDevModeAndLocalhost = (env as Env).APP_URLS.includes(url.host)
+
+		const isValidProdUrl = urlTest.test(url.hostname)
+
+		const isValidUrl = isDevModeAndLocalhost || isValidProdUrl
+
+		/** No api key sent, and the url is invalid => not authorized */
+		if (sentApiKey === null && !isValidUrl) {
 			return new Response(JSON.stringify({ error: apiErrors.noAuthorizationKey }), {
 				status: 403,
 				headers: headers,
 			})
 		}
 
-    if (sentApiKey && origin !== (env as Env).APP_URL) {
-      /**
-       * If validation fails, eg. Keys do not match.
-      */
-		const validation = validateSecret({
-      consumerSecret: sentApiKey,
-			masterSecret: apiKey,
-		})
-		if (!validation.valid) {
-      console.log(validation.log)
-      
+		/** request came from external source - chech the api key in that case */
+		if (sentApiKey && !isValidUrl) {
+			/** If validation fails, eg. Keys do not match. */
+
+			const validation = validateSecret({
+				consumerSecret: sentApiKey,
+				masterSecret: apiKey,
+			})
+			if (!validation.valid) {
+				console.log(validation.log)
+
+				return new Response(
+					JSON.stringify({
+						error: apiErrors.notAuthorized,
+					}),
+					{ status: 401, headers: headers },
+				)
+			}
+		}
+
+		/** this should not be hit, but just in case */
+		if (!isValidUrl) {
 			return new Response(
-        JSON.stringify({
-          error: apiErrors.notAuthorized,
+				JSON.stringify({
+					error: apiErrors.notAuthorized,
 				}),
 				{ status: 401, headers: headers },
-        )
-      }
-    }
-      
+			)
+		}
+
 		/**
 		 * GET, POST methods for API
 		 */
@@ -85,9 +105,7 @@ const handler: ExportedHandler = {
 						},
 					})
 				} catch (error) {
-					return new Response(apiErrors.errorFetchingBucket, { status: 500,
-						headers,
-					})
+					return new Response(apiErrors.errorFetchingBucket, { status: 500, headers })
 				}
 			}
 

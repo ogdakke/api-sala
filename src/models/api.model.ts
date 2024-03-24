@@ -3,7 +3,7 @@ import { IndexableInputValue, Language } from '.'
 export interface Env {
 	SALA_STORE_BUCKET: R2Bucket
 	'X-API-KEY': string
-  APP_URL: string
+	APP_URLS: string[]
 }
 
 export interface PassphraseRequestData {

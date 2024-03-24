@@ -10,10 +10,10 @@ account_id = "21d89c6498aeb4c017e2d89fbb6ba4cd"
 # Note: Use secrets to store sensitive data.
 # Docs: https://developers.cloudflare.com/workers/platform/environment-variables
 [vars]
-APP_URL = "https://salasanakone.com"
+APP_URLS = []
 
 [env.dev.vars]
-APP_URL = "http://localhost:5173"
+APP_URLS = ["localhost:5173", "localhost:4173"]
 
 # Bind a KV Namespace. Use KV as persistent storage for small key-value pairs.
 # Docs: https://developers.cloudflare.com/workers/runtime-apis/kv
